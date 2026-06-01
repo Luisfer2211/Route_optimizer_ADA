@@ -2,6 +2,15 @@ const DIRECTIONS_BASE = import.meta.env.DEV
   ? '/api/google/directions'
   : 'https://maps.googleapis.com/maps/api/directions/json'
 
+/** @typedef {'outbound' | 'return' | 'full'} RouteLegRole */
+
+/**
+ * @typedef {Object} RoutePathSegment
+ * @property {{ lat: number, lng: number }[]} path
+ * @property {RouteLegRole} role
+ * @property {number} [durationSeconds]
+ */
+
 function formatPoint(stop) {
   return `${stop.lat},${stop.lng}`
 }
@@ -66,6 +75,51 @@ function mergePaths(segments) {
   return merged
 }
 
+function pathFromDirectionsLeg(leg) {
+  const detailed = []
+
+  for (const step of leg.steps ?? []) {
+    const encoded = step.polyline?.points
+    if (!encoded) {
+      continue
+    }
+    const segment = decodePolyline(encoded)
+    if (segment.length === 0) {
+      continue
+    }
+    if (detailed.length === 0) {
+      detailed.push(...segment)
+    } else {
+      detailed.push(...segment.slice(1))
+    }
+  }
+
+  return detailed
+}
+
+function legDurationSeconds(leg) {
+  return leg.duration?.value ?? 0
+}
+
+function sumDurations(durations) {
+  return durations.reduce((total, seconds) => total + seconds, 0)
+}
+
+/**
+ * Full-resolution path from each driving step (curves along roads).
+ * overview_polyline is simplified and looks like straight chords when zoomed in.
+ */
+function pathFromDirectionsRoute(route) {
+  const legPaths = (route.legs ?? []).map((leg) => pathFromDirectionsLeg(leg))
+  const merged = mergePaths(legPaths)
+  if (merged.length >= 2) {
+    return merged
+  }
+
+  const overview = route.overview_polyline?.points
+  return overview ? decodePolyline(overview) : []
+}
+
 async function fetchDirectionsLeg(origin, destination, viaStops = []) {
   const params = new URLSearchParams({
     origin: formatPoint(origin),
@@ -80,7 +134,13 @@ async function fetchDirectionsLeg(origin, destination, viaStops = []) {
   if (!import.meta.env.DEV) {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
     if (!apiKey) {
-      return { path: [], error: 'VITE_GOOGLE_MAPS_API_KEY is not configured' }
+      return {
+        path: [],
+        legs: [],
+        legDurations: [],
+        totalDurationSeconds: 0,
+        error: 'VITE_GOOGLE_MAPS_API_KEY is not configured',
+      }
     }
     params.set('key', apiKey)
   }
@@ -94,43 +154,174 @@ async function fetchDirectionsLeg(origin, destination, viaStops = []) {
 
   if (data.status !== 'OK') {
     const message = data.error_message || data.status
-    return { path: [], error: message }
+    return {
+      path: [],
+      legs: [],
+      legDurations: [],
+      totalDurationSeconds: 0,
+      error: message,
+    }
   }
 
-  const encoded = data.routes?.[0]?.overview_polyline?.points
-  if (!encoded) {
-    return { path: [], error: 'La API no devolvió geometría de la ruta' }
+  const route = data.routes?.[0]
+  if (!route) {
+    return {
+      path: [],
+      legs: [],
+      legDurations: [],
+      totalDurationSeconds: 0,
+      error: 'La API no devolvió geometría de la ruta',
+    }
   }
 
-  return { path: decodePolyline(encoded), error: null }
+  const routeLegs = route.legs ?? []
+  const legs = routeLegs.map((leg) => pathFromDirectionsLeg(leg))
+  const legDurations = routeLegs.map((leg) => legDurationSeconds(leg))
+  const path = mergePaths(legs)
+  if (path.length < 2) {
+    return {
+      path: [],
+      legs: [],
+      legDurations: [],
+      totalDurationSeconds: 0,
+      error: 'La API no devolvió geometría de la ruta',
+    }
+  }
+
+  return {
+    path,
+    legs,
+    legDurations,
+    totalDurationSeconds: sumDurations(legDurations),
+    error: null,
+  }
+}
+
+function buildStraightSegments(routePath, routeMode, distanceKm = 0) {
+  if (routeMode === 'open') {
+    const path = routePath.map((stop) => ({ lat: stop.lat, lng: stop.lng }))
+    return {
+      segments: [{ path, role: 'full', durationSeconds: 0 }],
+      path,
+      totalDurationSeconds: 0,
+      error: null,
+      estimatedFromDistanceKm: distanceKm,
+    }
+  }
+
+  const outboundStops = routePath.map((stop) => ({ lat: stop.lat, lng: stop.lng }))
+  const returnPath = [
+    outboundStops[outboundStops.length - 1],
+    { lat: routePath[0].lat, lng: routePath[0].lng },
+  ]
+
+  return {
+    segments: [
+      { path: outboundStops, role: 'outbound', durationSeconds: 0 },
+      { path: returnPath, role: 'return', durationSeconds: 0 },
+    ],
+    path: [...outboundStops, ...returnPath.slice(1)],
+    totalDurationSeconds: 0,
+    error: null,
+    estimatedFromDistanceKm: distanceKm,
+  }
 }
 
 /**
  * Driving path along roads for the ordered stops (open or closed tour).
- * Returns { path, error } where error is set when falling back is needed.
+ * @returns {{ segments: RoutePathSegment[], path: {lat:number,lng:number}[], error: string|null }}
  */
 export async function fetchDrivingPath(routePath, routeMode) {
   if (!routePath || routePath.length < 2) {
-    return { path: [], error: null }
+    return { segments: [], path: [], totalDurationSeconds: 0, error: null }
   }
 
   if (routeMode === 'open') {
     const destination = routePath[routePath.length - 1]
     const viaStops = routePath.length > 2 ? routePath.slice(1, -1) : []
-    return fetchDirectionsLeg(routePath[0], destination, viaStops)
+    const result = await fetchDirectionsLeg(routePath[0], destination, viaStops)
+    return {
+      segments: result.path.length
+        ? [{ path: result.path, role: 'full', durationSeconds: result.totalDurationSeconds }]
+        : [],
+      path: result.path,
+      totalDurationSeconds: result.totalDurationSeconds,
+      error: result.error,
+    }
   }
 
   if (routePath.length === 2) {
     const outbound = await fetchDirectionsLeg(routePath[0], routePath[1], [])
     if (outbound.error) {
-      return outbound
+      return {
+        segments: [],
+        path: [],
+        totalDurationSeconds: 0,
+        error: outbound.error,
+      }
     }
     const inbound = await fetchDirectionsLeg(routePath[1], routePath[0], [])
-    if (inbound.error) {
-      return { path: outbound.path, error: inbound.error }
+    const segments = [
+      {
+        path: outbound.path,
+        role: 'outbound',
+        durationSeconds: outbound.totalDurationSeconds,
+      },
+    ]
+    if (inbound.path.length >= 2) {
+      segments.push({
+        path: inbound.path,
+        role: 'return',
+        durationSeconds: inbound.totalDurationSeconds,
+      })
     }
-    return { path: mergePaths([outbound.path, inbound.path]), error: null }
+    return {
+      segments,
+      path: mergePaths([outbound.path, inbound.path]),
+      totalDurationSeconds: outbound.totalDurationSeconds + inbound.totalDurationSeconds,
+      error: inbound.error,
+    }
   }
 
-  return fetchDirectionsLeg(routePath[0], routePath[0], routePath.slice(1))
+  const result = await fetchDirectionsLeg(routePath[0], routePath[0], routePath.slice(1))
+  if (result.error || result.legs.length === 0) {
+    return {
+      segments: [],
+      path: result.path,
+      totalDurationSeconds: 0,
+      error: result.error,
+    }
+  }
+
+  if (result.legs.length === 1) {
+    return {
+      segments: [
+        {
+          path: result.path,
+          role: 'outbound',
+          durationSeconds: result.totalDurationSeconds,
+        },
+      ],
+      path: result.path,
+      totalDurationSeconds: result.totalDurationSeconds,
+      error: result.error,
+    }
+  }
+
+  const outboundPath = mergePaths(result.legs.slice(0, -1))
+  const returnPath = result.legs[result.legs.length - 1]
+  const outboundDuration = sumDurations(result.legDurations.slice(0, -1))
+  const returnDuration = result.legDurations[result.legDurations.length - 1] ?? 0
+
+  return {
+    segments: [
+      { path: outboundPath, role: 'outbound', durationSeconds: outboundDuration },
+      { path: returnPath, role: 'return', durationSeconds: returnDuration },
+    ],
+    path: result.path,
+    totalDurationSeconds: result.totalDurationSeconds,
+    error: result.error,
+  }
 }
+
+export { buildStraightSegments }

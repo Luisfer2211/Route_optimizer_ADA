@@ -46,7 +46,10 @@ export default function AuthForm() {
 
   return (
     <div className="auth-card">
-      <h1>Optimizador de rutas</h1>
+      <div className="auth-brand">
+        <img src="/logo.svg" alt="" className="auth-brand__logo" width={56} height={56} />
+        <h1>Optimizador de rutas</h1>
+      </div>
       <p className="auth-subtitle">Inicia sesión para continuar</p>
 
       <form

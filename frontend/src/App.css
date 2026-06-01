@@ -27,6 +27,40 @@
   border: 1px solid #e2e8f0;
 }
 
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.app-brand__logo {
+  flex-shrink: 0;
+  border-radius: 10px;
+}
+
+.app-brand h1 {
+  margin: 0;
+}
+
+.auth-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.25rem;
+  text-align: center;
+}
+
+.auth-brand__logo {
+  border-radius: 12px;
+}
+
+.auth-brand h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #0f172a;
+}
+
 .auth-card h1 {
   margin: 0 0 0.25rem;
   font-size: 1.5rem;
@@ -340,6 +374,37 @@
   color: #92400e;
   font-size: 0.9rem;
   line-height: 1.4;
+}
+
+.map-route-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.map-route-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.map-route-legend__swatch {
+  width: 1.25rem;
+  height: 0.35rem;
+  border-radius: 2px;
+}
+
+.map-route-legend__swatch--outbound {
+  background: #16a34a;
+}
+
+.map-route-legend__swatch--return {
+  background: #dc2626;
 }
 
 .map-frame {

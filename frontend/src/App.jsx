@@ -24,18 +24,21 @@ function App() {
   const [calculating, setCalculating] = useState(false)
   const [calculateMessage, setCalculateMessage] = useState(null)
   const [routeResult, setRouteResult] = useState(null)
+  const [routeMetrics, setRouteMetrics] = useState(null)
 
   const handleValidationChange = useCallback((status) => {
     setRadiusStatus(status)
     if (!status.valid) {
       setCalculateMessage(null)
       setRouteResult(null)
+      setRouteMetrics(null)
     }
   }, [])
 
   function handleDestinationsChange(nextDestinations) {
     setDestinations(nextDestinations)
     setRouteResult(null)
+    setRouteMetrics(null)
     setCalculateMessage(null)
   }
 
@@ -54,6 +57,7 @@ function App() {
   async function handleCalculate() {
     setCalculateMessage(null)
     setRouteResult(null)
+    setRouteMetrics(null)
 
     if (destinations.length < 2) {
       return
@@ -115,9 +119,12 @@ function App() {
   return (
     <div className="app-shell app-layout">
       <header className="app-header">
-        <div>
-          <h1>Optimizador de rutas</h1>
-          <p className="user-email">{user.email}</p>
+        <div className="app-brand">
+          <img src="/logo.svg" alt="" className="app-brand__logo" width={44} height={44} />
+          <div>
+            <h1>Optimizador de rutas</h1>
+            <p className="user-email">{user.email}</p>
+          </div>
         </div>
         <button type="button" className="btn-secondary" onClick={handleSignOut}>
           Cerrar sesión
@@ -142,11 +149,13 @@ function App() {
           calculating={calculating}
           calculateMessage={calculateMessage}
         />
-        <RouteResult result={routeResult} />
+        <RouteResult result={routeResult} metrics={routeMetrics} />
         <RouteMap
           destinations={destinations}
           routePath={routeResult?.destinations}
           routeMode={routeResult?.mode ?? routeMode}
+          totalDistanceKm={routeResult?.totalDistanceKm ?? 0}
+          onRouteMetrics={setRouteMetrics}
         />
       </main>
     </div>
