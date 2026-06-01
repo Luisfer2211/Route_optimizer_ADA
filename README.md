@@ -17,7 +17,7 @@ route-optimizer/
 - Node.js 18+
 - [uv](https://docs.astral.sh/uv/) for Python
 - Firebase project with **Email/Password** auth enabled
-- Google Cloud APIs: **Maps JavaScript**, **Distance Matrix** (front + back use the same key server-side in dev proxy)
+- Google Cloud APIs: **Maps JavaScript**, **Distance Matrix**, **Places API** (place search fallback if lab endpoint is down)
 
 ## Run locally (full stack)
 
