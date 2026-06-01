@@ -4,7 +4,7 @@ import {
   validateDestinationsRadius,
 } from '../services/roadDistance'
 
-export default function RadiusValidation({ destinations }) {
+export default function RadiusValidation({ destinations, onValidationChange }) {
   const [state, setState] = useState({
     loading: false,
     error: '',
@@ -13,25 +13,44 @@ export default function RadiusValidation({ destinations }) {
 
   useEffect(() => {
     if (destinations.length < 2) {
-      setState({ loading: false, error: '', result: null })
+      const empty = { loading: false, error: '', result: null }
+      setState(empty)
+      onValidationChange?.({
+        loading: false,
+        valid: false,
+        error: '',
+      })
       return undefined
     }
 
     let cancelled = false
-    setState({ loading: true, error: '', result: null })
+    const loadingState = { loading: true, error: '', result: null }
+    setState(loadingState)
+    onValidationChange?.({ loading: true, valid: false, error: '' })
 
     validateDestinationsRadius(destinations)
       .then((result) => {
         if (!cancelled) {
           setState({ loading: false, error: '', result })
+          onValidationChange?.({
+            loading: false,
+            valid: result.valid,
+            error: '',
+          })
         }
       })
       .catch((err) => {
         if (!cancelled) {
+          const message = err.message || 'Error al validar distancias'
           setState({
             loading: false,
-            error: err.message || 'Error al validar distancias',
+            error: message,
             result: null,
+          })
+          onValidationChange?.({
+            loading: false,
+            valid: false,
+            error: message,
           })
         }
       })
@@ -39,7 +58,7 @@ export default function RadiusValidation({ destinations }) {
     return () => {
       cancelled = true
     }
-  }, [destinations])
+  }, [destinations, onValidationChange])
 
   if (destinations.length < 2) {
     return null

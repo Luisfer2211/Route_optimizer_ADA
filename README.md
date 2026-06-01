@@ -61,6 +61,7 @@ uv sync
 - [x] Firebase Auth (email/password) in React
 - [x] Destinations search (lab API) + map with numbered pins
 - [x] 100 km validation by driving distance (Distance Matrix, closest neighbor)
+- [x] Route mode selector (open / closed) and calculate button (wired for Cloud Function)
 - [ ] Genetic algorithm + Distance Matrix
 - [ ] Cloud Function deploy + IP restriction
 - [ ] Google Maps route visualization

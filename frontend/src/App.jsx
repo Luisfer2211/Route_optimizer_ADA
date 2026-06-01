@@ -1,16 +1,34 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from './services/firebase'
+import { optimizeRoute } from './services/cloudFunction'
+import { validateDestinationsRadius } from './services/roadDistance'
 import AuthForm from './components/AuthForm'
 import DestinationInput from './components/DestinationInput'
 import RouteMap from './components/Map'
 import RadiusValidation from './components/RadiusValidation'
+import RouteOptions from './components/RouteOptions'
 import './App.css'
 
 function App() {
   const [user, setUser] = useState(null)
   const [authReady, setAuthReady] = useState(false)
   const [destinations, setDestinations] = useState([])
+  const [routeMode, setRouteMode] = useState('closed')
+  const [radiusStatus, setRadiusStatus] = useState({
+    loading: false,
+    valid: false,
+    error: '',
+  })
+  const [calculating, setCalculating] = useState(false)
+  const [calculateMessage, setCalculateMessage] = useState(null)
+
+  const handleValidationChange = useCallback((status) => {
+    setRadiusStatus(status)
+    if (!status.valid) {
+      setCalculateMessage(null)
+    }
+  }, [])
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -22,6 +40,57 @@ function App() {
 
   async function handleSignOut() {
     await signOut(auth)
+  }
+
+  async function handleCalculate() {
+    setCalculateMessage(null)
+
+    if (destinations.length < 2) {
+      return
+    }
+
+    setCalculating(true)
+    try {
+      const validation = await validateDestinationsRadius(destinations)
+      if (!validation.valid) {
+        setCalculateMessage({
+          type: 'error',
+          text: 'Las paradas no cumplen el límite de 100 km por carretera.',
+        })
+        return
+      }
+
+      if (!import.meta.env.VITE_ROUTE_OPTIMIZER_URL) {
+        setCalculateMessage({
+          type: 'info',
+          text: `Modo "${routeMode === 'closed' ? 'cerrada' : 'abierta'}" listo. Falta desplegar la Cloud Function (VITE_ROUTE_OPTIMIZER_URL).`,
+        })
+        return
+      }
+
+      const result = await optimizeRoute({
+        mode: routeMode,
+        destinations: destinations.map(({ id, name, address, lat, lng }) => ({
+          id,
+          name,
+          address,
+          lat,
+          lng,
+        })),
+      })
+
+      setCalculateMessage({
+        type: 'info',
+        text: `Respuesta del servidor: ${JSON.stringify(result)}`,
+      })
+    } catch (err) {
+      setCalculateMessage({
+        type: 'error',
+        text: err.message || 'No se pudo calcular la ruta.',
+      })
+    } finally {
+      setCalculating(false)
+    }
   }
 
   if (!authReady) {
@@ -57,7 +126,19 @@ function App() {
           destinations={destinations}
           onChange={setDestinations}
         />
-        <RadiusValidation destinations={destinations} />
+        <RadiusValidation
+          destinations={destinations}
+          onValidationChange={handleValidationChange}
+        />
+        <RouteOptions
+          routeMode={routeMode}
+          onRouteModeChange={setRouteMode}
+          destinations={destinations}
+          radiusStatus={radiusStatus}
+          onCalculate={handleCalculate}
+          calculating={calculating}
+          calculateMessage={calculateMessage}
+        />
         <RouteMap destinations={destinations} />
       </main>
     </div>

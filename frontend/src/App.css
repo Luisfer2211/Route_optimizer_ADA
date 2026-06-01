@@ -164,6 +164,107 @@
   color: #991b1b;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.route-options-panel {
+  width: 100%;
+  padding: 1.5rem;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+  text-align: left;
+}
+
+.route-options-panel h2 {
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+  color: #0f172a;
+}
+
+.route-mode-fieldset {
+  border: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.route-mode-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #f8fafc;
+}
+
+.route-mode-option:has(input:checked) {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.route-mode-option input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.route-mode-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.route-mode-option strong {
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.route-mode-option small {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.btn-calculate {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.route-options-hint {
+  margin: 0.75rem 0 0;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.route-options-message {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+}
+
+.route-options-message--error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
 .map-panel {
   width: 100%;
   padding: 1.5rem;
