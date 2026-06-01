@@ -15,6 +15,7 @@ function App() {
   const [user, setUser] = useState(null)
   const [authReady, setAuthReady] = useState(false)
   const [destinations, setDestinations] = useState([])
+  const [fixStart, setFixStart] = useState(true)
   const [routeMode, setRouteMode] = useState('closed')
   const [radiusStatus, setRadiusStatus] = useState({
     loading: false,
@@ -37,6 +38,9 @@ function App() {
 
   function handleDestinationsChange(nextDestinations) {
     setDestinations(nextDestinations)
+    if (nextDestinations.length === 0) {
+      setFixStart(true)
+    }
     setRouteResult(null)
     setRouteMetrics(null)
     setCalculateMessage(null)
@@ -76,6 +80,7 @@ function App() {
 
       const result = await optimizeRoute({
         mode: routeMode,
+        fixStart,
         destinations: destinations.map(({ id, name, address, lat, lng }) => ({
           id,
           name,
@@ -134,6 +139,8 @@ function App() {
       <main className="app-main">
         <DestinationInput
           destinations={destinations}
+          fixStart={fixStart}
+          onFixStartChange={setFixStart}
           onChange={handleDestinationsChange}
         />
         <RadiusValidation
@@ -142,6 +149,7 @@ function App() {
         />
         <RouteOptions
           routeMode={routeMode}
+          fixStart={fixStart}
           onRouteModeChange={setRouteMode}
           destinations={destinations}
           radiusStatus={radiusStatus}

@@ -2,6 +2,7 @@ const MIN_DESTINATIONS = 2
 
 export default function RouteOptions({
   routeMode,
+  fixStart,
   onRouteModeChange,
   destinations,
   radiusStatus,
@@ -42,7 +43,11 @@ export default function RouteOptions({
           />
           <span>
             <strong>Ruta cerrada</strong>
-            <small>Empieza en el primer destino y regresa al origen.</small>
+            <small>
+              {fixStart
+                ? 'Empieza en el primer destino ingresado y regresa a ese punto.'
+                : 'Recorre todos los destinos y regresa al punto de inicio elegido por el optimizador.'}
+            </small>
           </span>
         </label>
 
@@ -56,7 +61,11 @@ export default function RouteOptions({
           />
           <span>
             <strong>Ruta abierta</strong>
-            <small>Termina en el último destino; no regresa al inicio.</small>
+            <small>
+              {fixStart
+                ? 'Empieza en el primer destino ingresado; termina en el último de la ruta optimizada.'
+                : 'El optimizador elige inicio y fin para minimizar la distancia total.'}
+            </small>
           </span>
         </label>
       </fieldset>

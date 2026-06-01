@@ -450,6 +450,53 @@
   font-size: 0.9rem;
 }
 
+.fix-start-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.fix-start-option input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.fix-start-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.fix-start-option strong {
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.fix-start-option small {
+  color: #64748b;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.destination-origin-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.destination-list__item--origin {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
 .search-form label {
   display: block;
   font-size: 0.875rem;

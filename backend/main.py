@@ -291,6 +291,10 @@ def optimize_route(request: Request):
     if mode not in ("closed", "open"):
         return _error_response("mode must be 'closed' or 'open'", 400)
 
+    fix_start = payload.get("fixStart", True)
+    if not isinstance(fix_start, bool):
+        return _error_response("fixStart must be a boolean", 400)
+
     try:
         destinations = parse_destinations(payload.get("destinations"))
         _load_local_env()
@@ -303,7 +307,7 @@ def optimize_route(request: Request):
             )
         matrix = build_distance_matrix(destinations, api_key=maps_api_key)
         validate_closest_neighbor_radius(matrix, MAX_RADIUS_KM)
-        order, total_distance_km = optimize_order(matrix, mode=mode)
+        order, total_distance_km = optimize_order(matrix, mode=mode, fix_start=fix_start)
     except ValueError as exc:
         return _error_response(str(exc), 400)
     except RuntimeError as exc:
@@ -333,6 +337,7 @@ def optimize_route(request: Request):
     return _json_response(
         {
             "mode": mode,
+            "fixStart": fix_start,
             "order": order,
             "totalDistanceKm": total_distance_km,
             "destinations": ordered_destinations,

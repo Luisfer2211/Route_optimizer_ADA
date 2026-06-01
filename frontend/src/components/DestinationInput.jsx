@@ -9,7 +9,12 @@ function createDestinationId() {
   return crypto.randomUUID()
 }
 
-export default function DestinationInput({ destinations, onChange }) {
+export default function DestinationInput({
+  destinations,
+  fixStart,
+  onFixStartChange,
+  onChange,
+}) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
@@ -102,6 +107,24 @@ export default function DestinationInput({ destinations, onChange }) {
         km por carretera (Google Distance Matrix).
       </p>
 
+      {destinations.length === 0 ? (
+        <label className="fix-start-option">
+          <input
+            type="checkbox"
+            checked={fixStart}
+            onChange={(event) => onFixStartChange(event.target.checked)}
+          />
+          <span>
+            <strong>¿Punto de partida?</strong>
+            <small>
+              Si está activo, el primer destino que agregues será siempre el inicio
+              del recorrido. Si no, el optimizador puede elegir otro inicio para
+              reducir la distancia total.
+            </small>
+          </span>
+        </label>
+      ) : null}
+
       <form className="search-form" onSubmit={handleSearch}>
         <label htmlFor="place-query">Buscar lugar</label>
         <div className="search-row">
@@ -149,10 +172,20 @@ export default function DestinationInput({ destinations, onChange }) {
       {destinations.length > 0 ? (
         <ol className="destination-list">
           {destinations.map((item, index) => (
-            <li key={item.id}>
+            <li
+              key={item.id}
+              className={
+                fixStart && index === 0 ? 'destination-list__item--origin' : ''
+              }
+            >
               <span className="destination-index">{index + 1}</span>
               <div className="destination-info">
-                <strong>{item.name}</strong>
+                <strong>
+                  {item.name}
+                  {fixStart && index === 0 ? (
+                    <span className="destination-origin-badge"> Salida</span>
+                  ) : null}
+                </strong>
                 <span>{item.address}</span>
               </div>
               <button

@@ -19,6 +19,10 @@ export default function RouteResult({ result, metrics }) {
   }
 
   const modeLabel = result.mode === 'closed' ? 'cerrada' : 'abierta'
+  const startNote =
+    result.fixStart === false
+      ? 'Inicio y fin elegidos por el optimizador.'
+      : 'Inicio fijo: primer destino ingresado.'
   const totalSeconds = resolveTotalSeconds(metrics, result.totalDistanceKm)
   const totalTimeLabel = formatDrivingDuration(totalSeconds)
   const outboundTimeLabel = formatDrivingDuration(metrics?.outboundDurationSeconds)
@@ -41,6 +45,7 @@ export default function RouteResult({ result, metrics }) {
         ) : null}
       </p>
       <p className="route-result-time-note">{timeSource}</p>
+      <p className="route-result-time-note">{startNote}</p>
       {result.mode === 'closed' && metrics?.fromDirections && outboundTimeLabel ? (
         <p className="route-result-legs-time">
           Ida: <strong>{outboundTimeLabel}</strong>
