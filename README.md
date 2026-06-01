@@ -17,52 +17,61 @@ route-optimizer/
 - Node.js 18+
 - [uv](https://docs.astral.sh/uv/) for Python
 - Firebase project with **Email/Password** auth enabled
-- Google Cloud / Maps APIs (lab + your function when ready)
+- Google Cloud APIs: **Maps JavaScript**, **Distance Matrix** (front + back use the same key server-side in dev proxy)
 
-## Frontend (local)
+## Run locally (full stack)
 
-```bash
-cd frontend
-cp .env.example .env
-# Fill VITE_FIREBASE_* from Firebase Console → Project settings → Your apps
-# Fill VITE_GOOGLE_MAPS_API_KEY (Maps JavaScript + Distance Matrix APIs enabled)
-npm install
-npm run dev
-```
-
-Open http://localhost:5173 — sign in or create an account.
-
-**Do not commit** `.env`, `importante.txt`, or any API keys.
-
-### Firebase vs lab GCP
-
-- **Firebase (`route-optimizer-11`)**: login only (Authentication). No need to move the lab into Firebase.
-- **Lab GCP (`lab-ada-mapas`)**: shared Places Cloud Function for the course. The frontend calls it by URL; it is not part of your Firebase project.
-
-### Places search and CORS
-
-`hello.py` works because Python is not a browser. In the browser, the lab function must allow CORS or you proxy the request. **Local dev** uses Vite (`/api/lab/places` → lab function). For a **production** build you may later proxy through your own Cloud Function.
-
-## Backend (local, later)
+### 1. Backend
 
 ```bash
 cd backend
 cp .env.example .env
-uv sync
-# Run with functions-framework when implemented
 ```
 
-## Lab places API
+Set in `backend/.env`:
 
-`hello.py` calls the course Cloud Function for place search. The frontend can reuse the same URL via `VITE_LAB_PLACES_URL`.
+- `GOOGLE_MAPS_API_KEY` — same project, Distance Matrix enabled
+- `ALLOWED_CALLER_IPS` — leave empty for local dev, or add `127.0.0.1`
+- `FIREBASE_PROJECT_ID=route-optimizer-11`
+- Optional: `GOOGLE_APPLICATION_CREDENTIALS` path to Firebase service account JSON for token verification locally
+
+```bash
+uv sync
+uv run functions-framework --target=optimize_route --port=8080
+```
+
+### 2. Frontend
+
+```bash
+cd frontend
+cp .env.example .env
+# Firebase config + VITE_GOOGLE_MAPS_API_KEY
+# Optional: VITE_ROUTE_OPTIMIZER_URL=/api/optimize (default in dev via Vite proxy)
+npm install
+npm run dev
+```
+
+Open http://localhost:5173 — sign in, add destinations, choose route mode, **Calcular ruta óptima**.
+
+The Vite dev server proxies `/api/optimize` → `http://127.0.0.1:8080`.
+
+**Do not commit** `.env`, service account JSON, or API keys.
+
+### Firebase vs lab GCP
+
+- **Firebase (`route-optimizer-11`)**: Authentication only.
+- **Lab GCP (`lab-ada-mapas`)**: shared Places search Cloud Function.
+
+## Deploy (later)
+
+Deploy `backend/main.py` as an HTTP Cloud Function (2nd gen), set env vars in GCP, put the function URL in `VITE_ROUTE_OPTIMIZER_URL`, and restrict `ALLOWED_CALLER_IPS` to your public IP(s).
 
 ## Status
 
 - [x] Firebase Auth (email/password) in React
 - [x] Destinations search (lab API) + map with numbered pins
-- [x] 100 km validation by driving distance (Distance Matrix, closest neighbor)
-- [x] Route mode selector (open / closed) and calculate button (wired for Cloud Function)
-- [ ] Genetic algorithm + Distance Matrix
-- [ ] Cloud Function deploy + IP restriction
-- [ ] Google Maps route visualization
+- [x] 100 km validation by driving distance (closest neighbor)
+- [x] Route mode open / closed + genetic algorithm backend
+- [x] Local Cloud Function + result on map (polyline)
+- [ ] Cloud Function deployed to GCP + IP restriction in production
 - [ ] Diagrams (draw.io)

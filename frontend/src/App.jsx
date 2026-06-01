@@ -8,6 +8,7 @@ import DestinationInput from './components/DestinationInput'
 import RouteMap from './components/Map'
 import RadiusValidation from './components/RadiusValidation'
 import RouteOptions from './components/RouteOptions'
+import RouteResult from './components/RouteResult'
 import './App.css'
 
 function App() {
@@ -22,13 +23,21 @@ function App() {
   })
   const [calculating, setCalculating] = useState(false)
   const [calculateMessage, setCalculateMessage] = useState(null)
+  const [routeResult, setRouteResult] = useState(null)
 
   const handleValidationChange = useCallback((status) => {
     setRadiusStatus(status)
     if (!status.valid) {
       setCalculateMessage(null)
+      setRouteResult(null)
     }
   }, [])
+
+  function handleDestinationsChange(nextDestinations) {
+    setDestinations(nextDestinations)
+    setRouteResult(null)
+    setCalculateMessage(null)
+  }
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -44,6 +53,7 @@ function App() {
 
   async function handleCalculate() {
     setCalculateMessage(null)
+    setRouteResult(null)
 
     if (destinations.length < 2) {
       return
@@ -60,14 +70,6 @@ function App() {
         return
       }
 
-      if (!import.meta.env.VITE_ROUTE_OPTIMIZER_URL) {
-        setCalculateMessage({
-          type: 'info',
-          text: `Modo "${routeMode === 'closed' ? 'cerrada' : 'abierta'}" listo. Falta desplegar la Cloud Function (VITE_ROUTE_OPTIMIZER_URL).`,
-        })
-        return
-      }
-
       const result = await optimizeRoute({
         mode: routeMode,
         destinations: destinations.map(({ id, name, address, lat, lng }) => ({
@@ -79,9 +81,10 @@ function App() {
         })),
       })
 
+      setRouteResult(result)
       setCalculateMessage({
         type: 'info',
-        text: `Respuesta del servidor: ${JSON.stringify(result)}`,
+        text: 'Ruta calculada correctamente.',
       })
     } catch (err) {
       setCalculateMessage({
@@ -124,7 +127,7 @@ function App() {
       <main className="app-main">
         <DestinationInput
           destinations={destinations}
-          onChange={setDestinations}
+          onChange={handleDestinationsChange}
         />
         <RadiusValidation
           destinations={destinations}
@@ -139,7 +142,12 @@ function App() {
           calculating={calculating}
           calculateMessage={calculateMessage}
         />
-        <RouteMap destinations={destinations} />
+        <RouteResult result={routeResult} />
+        <RouteMap
+          destinations={destinations}
+          routePath={routeResult?.destinations}
+          routeMode={routeResult?.mode ?? routeMode}
+        />
       </main>
     </div>
   )

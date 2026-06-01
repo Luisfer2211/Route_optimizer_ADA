@@ -22,32 +22,71 @@ function fitMapToDestinations(map, destinations) {
   map.fitBounds(bounds, { top: 48, right: 48, bottom: 48, left: 48 })
 }
 
-export default function RouteMap({ destinations }) {
+export default function RouteMap({ destinations, routePath = null, routeMode = 'closed' }) {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
   const mapRef = useRef(null)
+  const polylineRef = useRef(null)
+  const displayStops = routePath?.length ? routePath : destinations
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey ?? '',
   })
 
   const center = useMemo(() => {
-    if (destinations.length === 0) {
+    if (displayStops.length === 0) {
       return DEFAULT_CENTER
     }
-    return { lat: destinations[0].lat, lng: destinations[0].lng }
-  }, [destinations])
+    return { lat: displayStops[0].lat, lng: displayStops[0].lng }
+  }, [displayStops])
 
   const onMapLoad = useCallback(
     (map) => {
       mapRef.current = map
-      fitMapToDestinations(map, destinations)
+      fitMapToDestinations(map, displayStops)
     },
-    [destinations],
+    [displayStops],
   )
 
   useEffect(() => {
-    fitMapToDestinations(mapRef.current, destinations)
-  }, [destinations])
+    fitMapToDestinations(mapRef.current, displayStops)
+  }, [displayStops])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !window.google?.maps) {
+      return undefined
+    }
+
+    if (polylineRef.current) {
+      polylineRef.current.setMap(null)
+      polylineRef.current = null
+    }
+
+    if (!routePath || routePath.length < 2) {
+      return undefined
+    }
+
+    const path = routePath.map((stop) => ({ lat: stop.lat, lng: stop.lng }))
+    if (routeMode === 'closed' && routePath.length > 1) {
+      path.push({ lat: routePath[0].lat, lng: routePath[0].lng })
+    }
+
+    polylineRef.current = new window.google.maps.Polyline({
+      path,
+      geodesic: true,
+      strokeColor: '#2563eb',
+      strokeOpacity: 0.9,
+      strokeWeight: 4,
+    })
+    polylineRef.current.setMap(map)
+
+    return () => {
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null)
+        polylineRef.current = null
+      }
+    }
+  }, [routePath, routeMode])
 
   if (!apiKey) {
     return (
@@ -82,14 +121,14 @@ export default function RouteMap({ destinations }) {
   return (
     <section className="map-panel">
       <h2>Mapa</h2>
-      {destinations.length === 0 ? (
+      {displayStops.length === 0 ? (
         <p className="map-empty-hint">Agrega destinos para ver los pines en el mapa.</p>
       ) : null}
       <div className="map-frame">
         <GoogleMap
           mapContainerStyle={MAP_CONTAINER_STYLE}
           center={center}
-          zoom={destinations.length === 0 ? 11 : 12}
+          zoom={displayStops.length === 0 ? 11 : 12}
           onLoad={onMapLoad}
           options={{
             streetViewControl: false,
@@ -97,7 +136,7 @@ export default function RouteMap({ destinations }) {
             fullscreenControl: true,
           }}
         >
-          {destinations.map((destination, index) => (
+          {displayStops.map((destination, index) => (
             <Marker
               key={destination.id}
               position={{ lat: destination.lat, lng: destination.lng }}

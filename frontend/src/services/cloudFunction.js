@@ -1,11 +1,20 @@
 import { auth } from './firebase'
 
+function getOptimizerUrl() {
+  if (import.meta.env.VITE_ROUTE_OPTIMIZER_URL) {
+    return import.meta.env.VITE_ROUTE_OPTIMIZER_URL
+  }
+  if (import.meta.env.DEV) {
+    return '/api/optimize'
+  }
+  return ''
+}
+
 /**
  * Calls the route optimizer Cloud Function with the Firebase ID token.
- * Implementation will be completed when the backend is deployed.
  */
 export async function optimizeRoute(payload) {
-  const baseUrl = import.meta.env.VITE_ROUTE_OPTIMIZER_URL
+  const baseUrl = getOptimizerUrl()
   if (!baseUrl) {
     throw new Error('VITE_ROUTE_OPTIMIZER_URL is not configured')
   }
@@ -26,8 +35,17 @@ export async function optimizeRoute(payload) {
   })
 
   if (!response.ok) {
-    const message = await response.text()
-    throw new Error(message || `Request failed (${response.status})`)
+    let message = `Request failed (${response.status})`
+    const text = await response.text()
+    try {
+      const data = JSON.parse(text)
+      message = data.error || message
+    } catch {
+      if (text) {
+        message = text
+      }
+    }
+    throw new Error(message)
   }
 
   return response.json()

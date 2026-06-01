@@ -77,10 +77,55 @@ function attachDistanceMatrixProxy(server, apiKey) {
   })
 }
 
+function attachOptimizerProxy(server) {
+  const target =
+    process.env.VITE_OPTIMIZER_DEV_URL ?? 'http://127.0.0.1:8080'
+
+  server.middlewares.use(async (req, res, next) => {
+    if (req.url !== '/api/optimize' && !req.url?.startsWith('/api/optimize?')) {
+      return next()
+    }
+
+    try {
+      const chunks = []
+      for await (const chunk of req) {
+        chunks.push(chunk)
+      }
+      const body = Buffer.concat(chunks)
+
+      const response = await fetch(target, {
+        method: req.method,
+        headers: {
+          'Content-Type': req.headers['content-type'] ?? 'application/json',
+          Authorization: req.headers.authorization ?? '',
+        },
+        body: body.length > 0 ? body : undefined,
+      })
+
+      const responseBody = await response.text()
+      res.statusCode = response.status
+      res.setHeader(
+        'Content-Type',
+        response.headers.get('content-type') ?? 'application/json',
+      )
+      res.end(responseBody)
+    } catch {
+      res.statusCode = 502
+      res.end(
+        JSON.stringify({
+          error:
+            'No se pudo contactar la Cloud Function local (uv run functions-framework --target=optimize_route --port=8080)',
+        }),
+      )
+    }
+  })
+}
+
 function devProxies(apiKey) {
   const attach = (server) => {
     attachLabPlacesProxy(server)
     attachDistanceMatrixProxy(server, apiKey)
+    attachOptimizerProxy(server)
   }
   return {
     name: 'dev-api-proxies',
