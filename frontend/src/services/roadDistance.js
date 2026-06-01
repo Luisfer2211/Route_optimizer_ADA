@@ -1,6 +1,8 @@
 export const MAX_RADIUS_KM = 100
 
-const MATRIX_PATH = '/api/google/distancematrix'
+const MATRIX_BASE = import.meta.env.DEV
+  ? '/api/google/distancematrix'
+  : 'https://maps.googleapis.com/maps/api/distancematrix/json'
 
 function formatPoint(point) {
   return `${point.lat},${point.lng}`
@@ -43,8 +45,22 @@ export async function fetchDrivingDistanceMatrix(origins, destinations) {
     mode: 'driving',
   })
 
-  const response = await fetch(`${MATRIX_PATH}?${params.toString()}`)
-  const data = await response.json()
+  if (!import.meta.env.DEV) {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+    if (!apiKey) {
+      throw new Error('VITE_GOOGLE_MAPS_API_KEY is not configured')
+    }
+    params.set('key', apiKey)
+  }
+
+  const response = await fetch(`${MATRIX_BASE}?${params.toString()}`)
+  const text = await response.text()
+  let data
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error('No se pudo consultar distancias por carretera')
+  }
 
   if (!response.ok) {
     throw new Error(data.error || 'No se pudo consultar distancias por carretera')

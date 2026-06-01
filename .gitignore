@@ -21,6 +21,9 @@ node_modules/
 dist/
 dist-ssr/
 
+# Firebase local cache (do not commit)
+.firebase/
+
 # IDE and OS
 .vscode/
 .idea/

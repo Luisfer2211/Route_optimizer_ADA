@@ -24,7 +24,13 @@ async function searchPlacesLab(query) {
   url.searchParams.set('place', query)
 
   const response = await fetch(url.toString())
-  const data = await response.json()
+  const text = await response.text()
+  let data
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error('Lab: respuesta no válida')
+  }
 
   if (!response.ok) {
     const detail = data?.error?.message ?? data?.error ?? response.status
@@ -58,7 +64,15 @@ async function searchPlacesGoogle(query) {
     },
   )
 
-  const data = await response.json()
+  const text = await response.text()
+  let data
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error(
+      'Google Places devolvió una respuesta no válida. Revisa la API key y Places API (New).',
+    )
+  }
 
   if (!response.ok) {
     const detail =
@@ -72,7 +86,8 @@ async function searchPlacesGoogle(query) {
 }
 
 /**
- * Search places: lab Cloud Function first, then Places API (New) fallback.
+ * Search places: lab Cloud Function in local dev only (Vite proxy avoids CORS).
+ * Production uses Places API (New) from the browser.
  */
 export async function searchPlaces(query) {
   const trimmed = query.trim()
@@ -80,13 +95,15 @@ export async function searchPlaces(query) {
     return []
   }
 
-  try {
-    const fromLab = await searchPlacesLab(trimmed)
-    if (fromLab.length > 0) {
-      return fromLab
+  if (import.meta.env.DEV) {
+    try {
+      const fromLab = await searchPlacesLab(trimmed)
+      if (fromLab.length > 0) {
+        return fromLab
+      }
+    } catch {
+      /* lab unavailable — use Google fallback below */
     }
-  } catch {
-    /* lab unavailable — use Google fallback below */
   }
 
   return searchPlacesGoogle(trimmed)
