@@ -2,81 +2,99 @@
 
 Prerequisites: [gcloud CLI](https://cloud.google.com/sdk/docs/install), billing enabled, APIs enabled (**Cloud Functions**, **Cloud Build**, **Distance Matrix**).
 
-## 1. Prepare secrets (never commit values)
+## 1. One-time: env file for deploy (no long `gcloud` lines)
 
-In Google Cloud Console → **Secret Manager** (or function environment variables):
+From `backend/`:
+
+```powershell
+copy env.deploy.yaml.example env.deploy.yaml
+```
+
+Edit **`env.deploy.yaml`** (gitignored — never commit it):
+
+```yaml
+FIREBASE_PROJECT_ID: route-optimizer-11
+ALLOWED_CALLER_IPS: "181.189.154.189,200.119.172.237,2803:c800:..."
+GOOGLE_MAPS_API_KEY: "your-server-maps-key"
+```
 
 | Variable | Description |
 |----------|-------------|
-| `GOOGLE_MAPS_API_KEY` | Server key or unrestricted key with Distance Matrix enabled |
+| `GOOGLE_MAPS_API_KEY` | Server key (no HTTP referrer lock) with Distance Matrix + Directions |
 | `FIREBASE_PROJECT_ID` | e.g. `route-optimizer-11` |
-| `ALLOWED_CALLER_IPS` | Your public IP(s), comma-separated (see [whatismyip](https://whatismyip.com/)) |
+| `ALLOWED_CALLER_IPS` | Public IPs, comma-separated — **always quote** the value (IPv6 uses `:`) |
 
-On GCP, Firebase Admin uses the function’s **default service account**; you do not need `GOOGLE_APPLICATION_CREDENTIALS` if the project is linked to Firebase.
+On GCP, Firebase Admin uses the function’s **default service account**; you do not need `GOOGLE_APPLICATION_CREDENTIALS` in this file.
 
-## 2. Deploy from `backend/`
+## 2. Deploy code + env vars
 
-```bash
+```powershell
 cd backend
-uv export --no-dev -o requirements.txt   # refresh lock for pip if dependencies changed
+.\deploy.ps1
 ```
+
+Linux/macOS: `chmod +x deploy.sh && ./deploy.sh`
+
+This runs `gcloud functions deploy` with `--env-vars-file=env.deploy.yaml`.
+
+Refresh dependencies when `pyproject.toml` changed:
 
 ```bash
-gcloud functions deploy optimize-route \
-  --gen2 \
-  --runtime=python312 \
-  --region=us-central1 \
-  --source=. \
-  --entry-point=optimize_route \
-  --trigger-http \
-  --allow-unauthenticated \
-  --set-env-vars FIREBASE_PROJECT_ID=route-optimizer-11,ALLOWED_CALLER_IPS=YOUR_PUBLIC_IP \
-  --set-secrets GOOGLE_MAPS_API_KEY=maps-api-key:latest
+uv export --no-dev -o requirements.txt
 ```
 
-Replace `YOUR_PUBLIC_IP` and the secret name with your values.  
-Alternatively set env vars in the Console after deploy.
+Copy the **function URL** from the output (or use  
+`https://us-central1-route-optimizer-11.cloudfunctions.net/optimize-route`).
 
-Copy the **function URL** from the command output.
+## 3. Change only IPs or keys (no full redeploy)
 
-## 3. Frontend production
+Edit `env.deploy.yaml`, then:
+
+```powershell
+.\update-env.ps1
+```
+
+Updates the Cloud Run service behind Gen 2 — usually **much faster** than a full deploy when you only added a phone IP.
+
+## 4. Frontend production
 
 In `frontend/.env`:
 
 ```env
-VITE_ROUTE_OPTIMIZER_URL=https://REGION-PROJECT.cloudfunctions.net/optimize-route
+VITE_ROUTE_OPTIMIZER_URL=https://us-central1-route-optimizer-11.cloudfunctions.net/optimize-route
 ```
 
-Build and host (Firebase Hosting, Vercel, etc.):
-
-```bash
+```powershell
 cd frontend
 npm run build
+firebase deploy --only hosting
 ```
 
-## 4. IP restriction check
+## 5. IP restriction
 
-Only `ALLOWED_CALLER_IPS` on the Cloud Function controls this (comma-separated).  
-Calls from any other IP receive `403 Forbidden IP (seen: …)`.
+Only **`ALLOWED_CALLER_IPS`** on the function enforces this.
 
-**Mobile:** cellular IPs change often and may be **IPv6**. From the phone browser open:
+From the **phone browser**, open the function URL (GET). JSON includes:
 
-`https://us-central1-route-optimizer-11.cloudfunctions.net/optimize-route`
+- `clientIp` — address to add to `env.deploy.yaml`
+- `ipAllowed` — `true` / `false`
 
-The JSON field `clientIp` is the address to add. Redeploy with:
-
-```bash
---set-env-vars '^:^FIREBASE_PROJECT_ID=...:ALLOWED_CALLER_IPS=ip1,ip2,ip3:GOOGLE_MAPS_API_KEY=...'
-```
-
-Use `^:^` and `:` between variables when IPs contain commas (PowerShell).
+Then run `.\update-env.ps1` (or `.\deploy.ps1` if you also changed Python code).
 
 Local dev: leave `ALLOWED_CALLER_IPS` empty in `backend/.env`.
 
-## 5. Smoke test
+## 6. Smoke test
 
 ```bash
-curl -s "https://YOUR_FUNCTION_URL" | head
+curl -s "https://us-central1-route-optimizer-11.cloudfunctions.net/optimize-route"
 ```
 
-Expect JSON with `"status":"ok"` and `"mapsKeyConfigured":true` (GET health).
+Expect `"status":"ok"`, `"mapsKeyConfigured":true`, and your `clientIp`.
+
+## Optional: Secret Manager instead of YAML key
+
+You can remove `GOOGLE_MAPS_API_KEY` from `env.deploy.yaml` and add to `deploy.ps1`:
+
+`--set-secrets GOOGLE_MAPS_API_KEY=maps-api-key:latest`
+
+Keep `ALLOWED_CALLER_IPS` in the YAML file — it is not a secret.

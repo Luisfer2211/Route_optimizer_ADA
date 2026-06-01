@@ -25,6 +25,9 @@ Route_optimizer_ADA/
 │   ├── distance_matrix.py
 │   ├── validation.py
 │   ├── serve.ps1               # local dev on port 8787
+│   ├── deploy.ps1              # deploy using env.deploy.yaml
+│   ├── update-env.ps1          # refresh IPs/keys without full redeploy
+│   ├── env.deploy.yaml.example # copy → env.deploy.yaml (gitignored)
 │   ├── DEPLOY.md               # GCP deploy steps
 │   ├── pyproject.toml
 │   ├── uv.lock
@@ -106,7 +109,11 @@ Open the URL Vite prints (e.g. http://localhost:5173). Sign in → add destinati
 
 ## Deploy to GCP
 
-See **[backend/DEPLOY.md](backend/DEPLOY.md)** for Cloud Functions Gen 2 deploy, `ALLOWED_CALLER_IPS`, and setting `VITE_ROUTE_OPTIMIZER_URL` in production.
+1. `cd backend` → `copy env.deploy.yaml.example env.deploy.yaml` → edit IPs and `GOOGLE_MAPS_API_KEY`.
+2. `.\deploy.ps1` — reads **`env.deploy.yaml`** (no pasting secrets into the terminal).
+3. New phone IP only? Edit `ALLOWED_CALLER_IPS` in that file → `.\update-env.ps1` (fast).
+
+Details: **[backend/DEPLOY.md](backend/DEPLOY.md)**. Set `VITE_ROUTE_OPTIMIZER_URL` in `frontend/.env` for production.
 
 ## Security notes
 
