@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 from typing import Any
 
 import firebase_admin
@@ -15,6 +16,7 @@ from distance_matrix import build_distance_matrix
 from genetic_algorithm import optimize_order
 from validation import parse_destinations, validate_closest_neighbor_radius
 
+BACKEND_DIR = Path(__file__).resolve().parent
 MAX_RADIUS_KM = 100
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
@@ -27,9 +29,22 @@ def _load_local_env() -> None:
     try:
         from dotenv import load_dotenv
 
-        load_dotenv()
+        load_dotenv(BACKEND_DIR / ".env")
     except ImportError:
         pass
+
+
+_load_local_env()
+
+
+def _resolve_credentials_path() -> str | None:
+    cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    if not cred_path:
+        return None
+    path = Path(cred_path)
+    if not path.is_absolute():
+        path = BACKEND_DIR / path
+    return str(path) if path.is_file() else None
 
 
 def _init_firebase() -> None:
@@ -37,8 +52,8 @@ def _init_firebase() -> None:
         return
 
     project_id = os.environ.get("FIREBASE_PROJECT_ID", "route-optimizer-11")
-    cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-    if cred_path and os.path.isfile(cred_path):
+    cred_path = _resolve_credentials_path()
+    if cred_path:
         cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred, {"projectId": project_id})
     else:
@@ -82,8 +97,6 @@ def _verify_bearer_token(request: Request) -> dict[str, Any]:
 @functions_framework.http
 def optimize_route(request: Request):
     """Validate auth and IP, then run genetic algorithm on distance matrix."""
-    _load_local_env()
-
     if request.method == "OPTIONS":
         return ("", 204, CORS_HEADERS)
 
