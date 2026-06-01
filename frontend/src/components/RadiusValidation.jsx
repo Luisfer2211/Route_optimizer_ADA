@@ -64,7 +64,7 @@ export default function RadiusValidation({ destinations, onValidationChange }) {
     return null
   }
 
-  if (state.loading) {
+  if (state.loading || !state.result) {
     return (
       <div className="radius-banner radius-banner--muted" role="status">
         Calculando distancias por carretera…
@@ -80,13 +80,22 @@ export default function RadiusValidation({ destinations, onValidationChange }) {
     )
   }
 
-  const { valid, maxClosestKm, violatingStop } = state.result ?? { valid: true }
+  const { valid, maxClosestKm, violatingStop } = state.result
 
   if (valid) {
     return (
       <div className="radius-banner radius-banner--ok" role="status">
         Distancias por carretera válidas: la vecina más lejana está a{' '}
-        <strong>{maxClosestKm.toFixed(1)} km</strong> (máximo {MAX_RADIUS_KM} km).
+        <strong>{Number(maxClosestKm).toFixed(1)} km</strong> (máximo {MAX_RADIUS_KM}{' '}
+        km).
+      </div>
+    )
+  }
+
+  if (!violatingStop) {
+    return (
+      <div className="radius-banner radius-banner--error" role="alert">
+        Las paradas no cumplen el límite de {MAX_RADIUS_KM} km por carretera.
       </div>
     )
   }
