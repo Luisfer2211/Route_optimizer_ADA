@@ -60,7 +60,7 @@ uv sync
 
 - [x] Firebase Auth (email/password) in React
 - [x] Destinations search (lab API) + map with numbered pins
-- [x] 100 km validation between stops (Haversine, max pairwise distance)
+- [x] 100 km validation (each stop within 100 km of its closest neighbor)
 - [ ] Genetic algorithm + Distance Matrix
 - [ ] Cloud Function deploy + IP restriction
 - [ ] Google Maps route visualization

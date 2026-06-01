@@ -8,25 +8,25 @@ export default function RadiusValidation({ destinations }) {
     return null
   }
 
-  const { valid, maxDistanceKm, violatingPair } =
+  const { valid, maxClosestKm, violatingStop } =
     validateDestinationsRadius(destinations)
 
   if (valid) {
     return (
       <div className="radius-banner radius-banner--ok" role="status">
-        Distancias válidas: la parada más lejana está a{' '}
-        <strong>{maxDistanceKm.toFixed(1)} km</strong> (máximo {MAX_RADIUS_KM}{' '}
-        km).
+        Distancias válidas: la parada más cercana más lejana está a{' '}
+        <strong>{maxClosestKm.toFixed(1)} km</strong> (máximo {MAX_RADIUS_KM}{' '}
+        km a su vecina más próxima).
       </div>
     )
   }
 
   return (
     <div className="radius-banner radius-banner--error" role="alert">
-      <strong>No se puede calcular la ruta:</strong>{' '}
-      {violatingPair.from.name} y {violatingPair.to.name} están a{' '}
-      {violatingPair.distanceKm.toFixed(1)} km. Todas las paradas deben estar a
-      como máximo {MAX_RADIUS_KM} km entre sí.
+      <strong>No se puede calcular la ruta:</strong> la parada más cercana a{' '}
+      {violatingStop.stop.name} es {violatingStop.closest.name} (
+      {violatingStop.distanceKm.toFixed(1)} km). Cada parada debe tener otra a
+      como máximo {MAX_RADIUS_KM} km.
     </div>
   )
 }

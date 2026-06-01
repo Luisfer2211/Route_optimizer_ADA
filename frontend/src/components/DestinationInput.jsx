@@ -66,7 +66,7 @@ export default function DestinationInput({ destinations, onChange }) {
     const radiusCheck = canAddDestination(place, destinations)
     if (!radiusCheck.allowed) {
       setError(
-        `"${place.name}" queda a ${radiusCheck.distanceKm.toFixed(1)} km de "${radiusCheck.from.name}" (máximo ${MAX_RADIUS_KM} km entre paradas).`,
+        `La parada más cercana a "${place.name}" es "${radiusCheck.from.name}" (${radiusCheck.distanceKm.toFixed(1)} km). Máximo permitido: ${MAX_RADIUS_KM} km.`,
       )
       return
     }
@@ -90,7 +90,8 @@ export default function DestinationInput({ destinations, onChange }) {
       <h2>Destinos</h2>
       <p className="destinations-hint">
         Agrega entre {MIN_DESTINATIONS} y {MAX_DESTINATIONS} paradas ({destinations.length}/
-        {MAX_DESTINATIONS}). Todas deben estar a como máximo {MAX_RADIUS_KM} km entre sí.
+        {MAX_DESTINATIONS}). Cada una debe tener otra parada a como máximo{' '}
+        {MAX_RADIUS_KM} km (la más cercana).
       </p>
 
       <form className="search-form" onSubmit={handleSearch}>

@@ -16,68 +16,77 @@ export function distanceKm(a, b) {
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h))
 }
 
-/** Largest pairwise distance among destinations (0 if fewer than 2). */
-export function maxPairwiseDistanceKm(destinations) {
-  let max = 0
-  for (let i = 0; i < destinations.length; i += 1) {
-    for (let j = i + 1; j < destinations.length; j += 1) {
-      const km = distanceKm(destinations[i], destinations[j])
-      if (km > max) {
-        max = km
-      }
+/** Distance from `point` to its nearest other destination. */
+export function closestNeighborDistanceKm(point, destinations) {
+  let min = Infinity
+  let closest = null
+
+  for (const other of destinations) {
+    if (other === point) {
+      continue
+    }
+    const km = distanceKm(point, other)
+    if (km < min) {
+      min = km
+      closest = other
     }
   }
-  return max
+
+  return { distanceKm: min, closest }
 }
 
 /**
- * All stops must lie within 100 km of each other (max pairwise distance).
+ * Each stop must be within maxKm of its closest neighbor (not every other stop).
  */
 export function validateDestinationsRadius(destinations, maxKm = MAX_RADIUS_KM) {
   if (destinations.length < 2) {
-    return { valid: true, maxDistanceKm: 0, violatingPair: null }
+    return { valid: true, maxClosestKm: 0, violatingStop: null }
   }
 
-  let maxDistanceKm = 0
-  let violatingPair = null
+  let maxClosestKm = 0
+  let violatingStop = null
 
-  for (let i = 0; i < destinations.length; i += 1) {
-    for (let j = i + 1; j < destinations.length; j += 1) {
-      const km = distanceKm(destinations[i], destinations[j])
-      if (km > maxDistanceKm) {
-        maxDistanceKm = km
-        violatingPair = {
-          from: destinations[i],
-          to: destinations[j],
-          distanceKm: km,
-        }
+  for (const stop of destinations) {
+    const { distanceKm: closestKm, closest } = closestNeighborDistanceKm(
+      stop,
+      destinations,
+    )
+    if (closestKm > maxClosestKm) {
+      maxClosestKm = closestKm
+    }
+    if (closestKm > maxKm) {
+      return {
+        valid: false,
+        maxClosestKm,
+        violatingStop: {
+          stop,
+          closest,
+          distanceKm: closestKm,
+        },
       }
     }
   }
 
-  const valid = maxDistanceKm <= maxKm
-  return {
-    valid,
-    maxDistanceKm,
-    violatingPair: valid ? null : violatingPair,
-  }
+  return { valid: true, maxClosestKm, violatingStop: null }
 }
 
-/** Check if adding `candidate` keeps all pairs within maxKm. */
+/** New stop must be within maxKm of at least one existing stop (its nearest). */
 export function canAddDestination(candidate, existing, maxKm = MAX_RADIUS_KM) {
   if (existing.length === 0) {
     return { allowed: true }
   }
 
-  for (const stop of existing) {
-    const km = distanceKm(candidate, stop)
-    if (km > maxKm) {
-      return {
-        allowed: false,
-        distanceKm: km,
-        from: stop,
-        to: candidate,
-      }
+  const { distanceKm: closestKm, closest } = closestNeighborDistanceKm(
+    candidate,
+    existing,
+  )
+
+  if (closestKm > maxKm) {
+    return {
+      allowed: false,
+      distanceKm: closestKm,
+      from: closest,
+      to: candidate,
     }
   }
 
