@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api'
+import { fetchDrivingPath } from '../services/drivingRoute'
 
 const DEFAULT_CENTER = { lat: 19.4326, lng: -99.1332 }
 const MAP_CONTAINER_STYLE = { width: '100%', height: 'min(420px, 55vh)', borderRadius: '12px' }
@@ -28,36 +29,20 @@ function fitMapToDestinations(map, destinations) {
   map.fitBounds(bounds, { top: 48, right: 48, bottom: 48, left: 48 })
 }
 
-function buildDirectionsRequest(routePath, routeMode) {
-  const origin = { lat: routePath[0].lat, lng: routePath[0].lng }
-
-  if (routeMode === 'closed') {
-    return {
-      origin,
-      destination: origin,
-      waypoints: routePath.slice(1).map((stop) => ({
-        location: { lat: stop.lat, lng: stop.lng },
-        stopover: true,
-      })),
-      travelMode: window.google.maps.TravelMode.DRIVING,
-      optimizeWaypoints: false,
-    }
+function fitMapToPath(map, path) {
+  if (!map || path.length === 0) {
+    return
   }
 
-  const last = routePath[routePath.length - 1]
-  return {
-    origin,
-    destination: { lat: last.lat, lng: last.lng },
-    waypoints:
-      routePath.length > 2
-        ? routePath.slice(1, -1).map((stop) => ({
-            location: { lat: stop.lat, lng: stop.lng },
-            stopover: true,
-          }))
-        : [],
-    travelMode: window.google.maps.TravelMode.DRIVING,
-    optimizeWaypoints: false,
+  if (path.length === 1) {
+    map.setCenter(path[0])
+    map.setZoom(14)
+    return
   }
+
+  const bounds = new window.google.maps.LatLngBounds()
+  path.forEach((point) => bounds.extend(point))
+  map.fitBounds(bounds, { top: 48, right: 48, bottom: 48, left: 48 })
 }
 
 function drawStraightPolyline(map, routePath, routeMode, polylineRef) {
@@ -79,11 +64,25 @@ function drawStraightPolyline(map, routePath, routeMode, polylineRef) {
   polylineRef.current.setMap(map)
 }
 
+function drawRoadPolyline(map, path, polylineRef) {
+  if (polylineRef.current) {
+    polylineRef.current.setMap(null)
+    polylineRef.current = null
+  }
+
+  polylineRef.current = new window.google.maps.Polyline({
+    path,
+    geodesic: false,
+    ...ROUTE_POLYLINE_OPTIONS,
+  })
+  polylineRef.current.setMap(map)
+}
+
 export default function RouteMap({ destinations, routePath = null, routeMode = 'closed' }) {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
   const mapRef = useRef(null)
   const polylineRef = useRef(null)
-  const directionsRendererRef = useRef(null)
+  const [routeLineWarning, setRouteLineWarning] = useState(null)
   const displayStops = routePath?.length ? routePath : destinations
 
   const { isLoaded, loadError } = useJsApiLoader({
@@ -115,10 +114,7 @@ export default function RouteMap({ destinations, routePath = null, routeMode = '
       return undefined
     }
 
-    const clearRouteOverlay = () => {
-      if (directionsRendererRef.current) {
-        directionsRendererRef.current.setMap(null)
-      }
+    const clearPolyline = () => {
       if (polylineRef.current) {
         polylineRef.current.setMap(null)
         polylineRef.current = null
@@ -126,49 +122,55 @@ export default function RouteMap({ destinations, routePath = null, routeMode = '
     }
 
     if (!routePath || routePath.length < 2) {
-      clearRouteOverlay()
+      clearPolyline()
+      setRouteLineWarning(null)
       return undefined
     }
 
-    if (!directionsRendererRef.current) {
-      directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
-        suppressMarkers: true,
-        preserveViewport: false,
-        polylineOptions: ROUTE_POLYLINE_OPTIONS,
-      })
-    }
-
-    const directionsService = new window.google.maps.DirectionsService()
-    directionsRendererRef.current.setMap(map)
-
     let cancelled = false
-    const request = buildDirectionsRequest(routePath, routeMode)
+    setRouteLineWarning(null)
 
-    directionsService.route(request, (result, status) => {
-      if (cancelled) {
-        return
-      }
-
-      if (status === window.google.maps.DirectionsStatus.OK && result) {
-        if (polylineRef.current) {
-          polylineRef.current.setMap(null)
-          polylineRef.current = null
+    ;(async () => {
+      try {
+        const { path, error } = await fetchDrivingPath(routePath, routeMode)
+        if (cancelled) {
+          return
         }
-        directionsRendererRef.current.setDirections(result)
-        const bounds = result.routes?.[0]?.bounds
-        if (bounds) {
-          map.fitBounds(bounds, { top: 48, right: 48, bottom: 48, left: 48 })
-        }
-        return
-      }
 
-      directionsRendererRef.current.setMap(null)
-      drawStraightPolyline(map, routePath, routeMode, polylineRef)
-    })
+        if (path.length >= 2) {
+          drawRoadPolyline(map, path, polylineRef)
+          fitMapToPath(map, path)
+          if (error) {
+            setRouteLineWarning(
+              `Ruta parcial por carretera. ${error}. Habilita Directions API en Google Cloud.`,
+            )
+          }
+          return
+        }
+
+        drawStraightPolyline(map, routePath, routeMode, polylineRef)
+        fitMapToDestinations(map, routePath)
+        const hint =
+          error ||
+          'No se pudo trazar la ruta por carretera. Habilita Directions API en el mismo proyecto que tu API key.'
+        setRouteLineWarning(hint)
+      } catch (fetchError) {
+        if (cancelled) {
+          return
+        }
+        drawStraightPolyline(map, routePath, routeMode, polylineRef)
+        fitMapToDestinations(map, routePath)
+        setRouteLineWarning(
+          fetchError instanceof Error
+            ? fetchError.message
+            : 'No se pudo trazar la ruta por carretera.',
+        )
+      }
+    })()
 
     return () => {
       cancelled = true
-      clearRouteOverlay()
+      clearPolyline()
     }
   }, [routePath, routeMode])
 
@@ -207,6 +209,11 @@ export default function RouteMap({ destinations, routePath = null, routeMode = '
       <h2>Mapa</h2>
       {displayStops.length === 0 ? (
         <p className="map-empty-hint">Agrega destinos para ver los pines en el mapa.</p>
+      ) : null}
+      {routeLineWarning ? (
+        <p className="map-route-warning" role="status">
+          {routeLineWarning}
+        </p>
       ) : null}
       <div className="map-frame">
         <GoogleMap

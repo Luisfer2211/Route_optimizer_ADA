@@ -84,6 +84,48 @@ function attachPlacesNewSearchProxy(server, apiKey) {
   })
 }
 
+function attachDirectionsProxy(server, envDir, mode) {
+  server.middlewares.use(async (req, res, next) => {
+    if (!req.url?.startsWith('/api/google/directions')) {
+      return next()
+    }
+
+    const env = loadEnv(mode, envDir, '')
+    const apiKey = env.VITE_GOOGLE_MAPS_API_KEY ?? ''
+
+    if (!apiKey) {
+      res.statusCode = 503
+      res.end(
+        JSON.stringify({
+          error: 'Configura VITE_GOOGLE_MAPS_API_KEY en frontend/.env',
+        }),
+      )
+      return
+    }
+
+    const incoming = new URL(req.url, 'http://localhost')
+    const upstream = new URL('https://maps.googleapis.com/maps/api/directions/json')
+    incoming.searchParams.forEach((value, key) => {
+      upstream.searchParams.set(key, value)
+    })
+    upstream.searchParams.set('key', apiKey)
+
+    try {
+      const response = await fetch(upstream.toString())
+      const body = await response.text()
+      res.statusCode = response.status
+      res.setHeader(
+        'Content-Type',
+        response.headers.get('content-type') ?? 'application/json',
+      )
+      res.end(body)
+    } catch {
+      res.statusCode = 502
+      res.end(JSON.stringify({ error: 'No se pudo contactar Directions API' }))
+    }
+  })
+}
+
 function attachDistanceMatrixProxy(server, apiKey) {
   server.middlewares.use(async (req, res, next) => {
     if (!req.url?.startsWith('/api/google/distancematrix')) {
@@ -183,6 +225,7 @@ function devProxies(envDir, mode, apiKey, optimizerUrl) {
   const attach = (server) => {
     attachLabPlacesProxy(server)
     attachPlacesNewSearchProxy(server, apiKey)
+    attachDirectionsProxy(server, envDir, mode)
     attachDistanceMatrixProxy(server, apiKey)
     attachOptimizerProxy(server, optimizerUrl, envDir, mode)
   }
