@@ -1,63 +1,127 @@
 # Route Optimizer ADA
 
-Web app to optimize delivery-style routes (**2–15 stops**, max **100 km** driving distance between closest neighbors) using a **genetic algorithm** in a Cloud Function, with **Firebase Authentication** and **Google Maps**.
+Web application to optimize delivery-style routes (**2–15 stops**, max **100 km** driving distance between closest neighbors) using a **genetic algorithm** in a GCP Cloud Function, with **Firebase Authentication** and **Google Maps**.
+
+**Live app:** [https://route-optimizer-11.web.app](https://route-optimizer-11.web.app)
+
+## Authors
+
+- Luis Palacios
+- Pablo Cabrera
+- Estuardo Castro
+- Eliazar Canastuj
+
+## Overview
+
+Users sign in with Firebase, search and add destinations (Places API), and the app validates that every stop has another within **100 km** by road (Distance Matrix). They choose **closed** or **open** route mode, optionally fix the first destination as the mandatory start, and request an optimized visit order. The Cloud Function builds the distance matrix, runs the genetic algorithm, and returns total distance and ordered stops. The map shows numbered pins and a driving polyline.
 
 ## Architecture
 
 | Layer | Technology |
 |-------|------------|
+| Hosting | Firebase Hosting (static SPA) |
 | Frontend | React + Vite |
 | Auth | Firebase Authentication (email/password) |
-| Optimizer | GCP Cloud Function (Python, `functions-framework`) |
-| Distances | Google Distance Matrix API |
+| Optimizer | GCP Cloud Function Gen 2 (`optimize-route`, Python) |
+| Distances | Google Distance Matrix API (via function proxy in production) |
 | Map UI | Maps JavaScript API, Directions API, Places API (New) |
 
-See `diagrams/flow.drawio` (user flow) and `diagrams/architecture.drawio` (system). Open in [draw.io](https://app.diagrams.net/) and export to PDF/PNG for delivery.
+**Optimizer URL (production):**  
+`https://us-central1-route-optimizer-11.cloudfunctions.net/optimize-route`
+
+Diagrams (draw.io + exported PNG):
+
+| File | Description |
+|------|-------------|
+| `diagrams/flow.drawio` | User flow: login → destinations → validation → calculate → map |
+| `diagrams/architecture.drawio` | System architecture with GCP icons |
+| `diagrams/Diagrama_Flujo.png` | Exported user flow |
+| `diagrams/Diagrama_Arquitectura.png` | Exported architecture |
+
+Open `.drawio` files in [diagrams.net](https://app.diagrams.net/) to edit; re-export PNG/PDF when diagrams change.
+
+## Features
+
+- **2–15 destinations** per route calculation
+- **100 km** closest-neighbor validation (on add and before optimize)
+- **Closed route:** return to start · **Open route:** end at last stop
+- **Optional fixed start:** checkbox *¿Punto de partida?* — first stop fixed vs optimizer picks start
+- **Genetic algorithm** (tournament selection, order crossover, swap mutation) on server-built matrix
+- **IP allowlist** on Cloud Function (`ALLOWED_CALLER_IPS`)
+- **Firebase ID token** required for optimize and Maps proxy calls
+- **Responsive UI** for desktop and mobile
 
 ## Project structure
 
 ```
 Route_optimizer_ADA/
 ├── README.md
+├── firebase.json              # Firebase Hosting → frontend/dist
+├── .firebaserc
 ├── backend/
-│   ├── main.py                 # HTTP entry (optimize_route)
+│   ├── main.py                # HTTP entry (optimize_route + Maps proxy)
 │   ├── genetic_algorithm.py
 │   ├── distance_matrix.py
 │   ├── validation.py
-│   ├── serve.ps1               # local dev on port 8787
-│   ├── deploy.ps1              # deploy using env.deploy.yaml
-│   ├── update-env.ps1          # refresh IPs/keys without full redeploy
-│   ├── env.deploy.yaml.example # copy → env.deploy.yaml (gitignored)
-│   ├── DEPLOY.md               # GCP deploy steps
+│   ├── maps_proxy.py
+│   ├── serve.ps1              # local dev (port 8787)
+│   ├── deploy.ps1             # deploy with env.deploy.yaml
+│   ├── update-env.ps1         # update env vars only (IPs, keys)
+│   ├── env.deploy.yaml.example
+│   ├── DEPLOY.md
 │   ├── pyproject.toml
 │   ├── uv.lock
-│   └── requirements.txt        # pip deps for Cloud Functions deploy
+│   └── requirements.txt       # Cloud Functions pip deps
 ├── frontend/
 │   ├── src/
 │   │   ├── App.jsx
-│   │   ├── components/         # Map, DestinationInput, RouteResult, …
-│   │   └── services/           # firebase, cloudFunction, roadDistance, drivingRoute
-│   ├── vite.config.js          # dev proxies (optimize, Maps APIs, lab places)
-│   └── package.json
+│   │   ├── components/        # Map, DestinationInput, RouteResult, RouteOptions, …
+│   │   └── services/          # firebase, cloudFunction, roadDistance, drivingRoute, places
+│   ├── vite.config.js         # dev proxies (/api/optimize, Maps, lab places)
+│   ├── package.json
+│   └── .env.example
 └── diagrams/
     ├── flow.drawio
-    └── architecture.drawio
+    ├── architecture.drawio
+    ├── Diagrama_Flujo.png
+    └── Diagrama_Arquitectura.png
 ```
 
 ## Prerequisites
 
-- Node.js 18+
-- [uv](https://docs.astral.sh/uv/) for Python
+- **Git**
+- **Node.js** 18+
+- **[uv](https://docs.astral.sh/uv/)** for Python
+- **[gcloud CLI](https://cloud.google.com/sdk/docs/install)** (deploy only)
+- **[Firebase CLI](https://firebase.google.com/docs/cli)** (hosting deploy only)
 - Firebase project with **Email/Password** sign-in enabled
-- Google Cloud APIs on your key:
-  - **Maps JavaScript API**
-  - **Distance Matrix API**
-  - **Directions API**
-  - **Places API (New)** (destination search fallback)
+- Google Cloud APIs enabled:
+  - Maps JavaScript API
+  - Distance Matrix API
+  - Directions API
+  - Places API (New)
 
-## Run locally
+### API keys (production)
 
-### 1. Backend
+Use two logical keys (can be same project):
+
+| Key | Used in | Restriction |
+|-----|---------|-------------|
+| **Browser** | `VITE_GOOGLE_MAPS_API_KEY` | HTTP referrers (`localhost`, your Hosting domain) |
+| **Server** | `GOOGLE_MAPS_API_KEY` in Cloud Function / `env.deploy.yaml` | No referrer lock (or IP restriction) |
+
+Places search runs in the **browser**; Distance Matrix and Directions go through the **Cloud Function** proxy to avoid CORS.
+
+## Run from scratch (local)
+
+### 1. Clone
+
+```powershell
+git clone <your-repo-url>
+cd Route_optimizer_ADA
+```
+
+### 2. Backend
 
 ```powershell
 cd backend
@@ -68,22 +132,24 @@ Edit `backend/.env`:
 
 | Variable | Purpose |
 |----------|---------|
-| `GOOGLE_MAPS_API_KEY` | Distance Matrix (same key as frontend) |
+| `GOOGLE_MAPS_API_KEY` | Distance Matrix / Directions |
 | `FIREBASE_PROJECT_ID` | e.g. `route-optimizer-11` |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Filename of Firebase Admin JSON in `backend/` (local only) |
-| `ALLOWED_CALLER_IPS` | Empty for local dev, or `127.0.0.1` |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Firebase Admin JSON **filename** in `backend/` (local only) |
+| `ALLOWED_CALLER_IPS` | Leave **empty** for local dev |
+
+Place the Firebase Admin service account JSON in `backend/` (never commit it).
 
 ```powershell
 uv sync
 .\serve.ps1
 ```
 
-You should see **`GOOGLE_MAPS_API_KEY loaded for backend.`**  
-Function URL: http://127.0.0.1:8787 — health check: open in browser → `"mapsKeyConfigured": true`.
+Expect **`GOOGLE_MAPS_API_KEY loaded for backend.`**  
+Health check: http://127.0.0.1:8787 → `"status":"ok"`, `"mapsKeyConfigured":true`.
 
-> Use **8787**, not 8080 (often blocked on Windows). Only **one** `serve.ps1` instance on that port.
+> Port **8787** (not 8080). Run only one `serve.ps1` instance.
 
-### 2. Frontend
+### 3. Frontend
 
 ```powershell
 cd frontend
@@ -91,51 +157,80 @@ copy .env.example .env
 ```
 
 Fill Firebase web config and `VITE_GOOGLE_MAPS_API_KEY`.  
-Leave `VITE_ROUTE_OPTIMIZER_URL` empty — dev uses `/api/optimize` via Vite proxy.
+Leave `VITE_ROUTE_OPTIMIZER_URL` **empty** — Vite proxies to `http://127.0.0.1:8787`.
 
 ```powershell
 npm install
 npm run dev
 ```
 
-Open the URL Vite prints (e.g. http://localhost:5173). Sign in → add destinations → wait for green radius banner → choose open/closed → **Calcular ruta óptima**.
+Open the URL Vite prints (e.g. http://localhost:5173).
 
-**Never commit** `.env`, `*-firebase-adminsdk-*.json`, or API keys.
+**Typical flow:** Sign in → (optional) *¿Punto de partida?* → add destinations → wait for green radius banner → open/closed mode → **Calcular ruta óptima**.
 
-### Firebase vs lab GCP
+### Lab Places (optional, dev)
 
-- **Firebase (`route-optimizer-11`)**: authentication only.
-- **Lab GCP (`lab-ada-mapas`)**: optional shared Places search; app falls back to Places API (New) if the lab endpoint fails.
+In local dev, Vite can proxy to the lab Places endpoint (`lab-ada-mapas`); if it fails, the app uses Places API (New) directly.
 
-## Deploy to GCP
+## Deploy to production
 
-1. `cd backend` → `copy env.deploy.yaml.example env.deploy.yaml` → edit IPs and `GOOGLE_MAPS_API_KEY`.
-2. `.\deploy.ps1` — reads **`env.deploy.yaml`** (no pasting secrets into the terminal).
-3. New phone IP only? Edit `ALLOWED_CALLER_IPS` in that file → `.\update-env.ps1` (fast).
+See **[backend/DEPLOY.md](backend/DEPLOY.md)** for details.
 
-Details: **[backend/DEPLOY.md](backend/DEPLOY.md)**. Set `VITE_ROUTE_OPTIMIZER_URL` in `frontend/.env` for production.
+### Backend (Cloud Function)
 
-## Security notes
+```powershell
+cd backend
+copy env.deploy.yaml.example env.deploy.yaml
+# Edit env.deploy.yaml: FIREBASE_PROJECT_ID, ALLOWED_CALLER_IPS, GOOGLE_MAPS_API_KEY
+.\deploy.ps1
+```
 
-- Cloud Function verifies **Firebase ID token** on every `POST`.
-- **`ALLOWED_CALLER_IPS`**: rejects requests from other IPs (required for grading).
-- Credentials only in environment variables / Secret Manager — **never in git**.
+To add a new client IP without redeploying code:
 
-## Feature checklist (assignment)
+```powershell
+.\update-env.ps1
+```
+
+Check allowed IP from a device: open the function URL in a browser and read `clientIp` / `ipAllowed` in the JSON response.
+
+### Frontend (Firebase Hosting)
+
+In `frontend/.env`:
+
+```env
+VITE_ROUTE_OPTIMIZER_URL=https://us-central1-route-optimizer-11.cloudfunctions.net/optimize-route
+```
+
+```powershell
+cd frontend
+npm run build
+cd ..
+firebase deploy --only hosting
+```
+
+## Security
+
+- **Authentication:** App and API calls require a valid Firebase session; `POST` handlers verify the Bearer ID token.
+- **IP restriction:** `ALLOWED_CALLER_IPS` on the Cloud Function; other IPs receive `403 Forbidden IP`.
+- **Secrets:** Use `.env` and `env.deploy.yaml` locally; never commit `.env`, `env.deploy.yaml`, `*-firebase-adminsdk-*.json`, or API keys.
+
+## Assignment checklist
 
 | Requirement | Status |
 |-------------|--------|
-| 2–15 destinations, 100 km validation | Done |
-| Open / closed route modes | Done |
-| Genetic algorithm + Distance Matrix in Cloud Function | Done (local + deploy-ready) |
-| Map: numbered pins, road polyline, total distance | Done |
-| Firebase login, blocked when logged out | Done |
+| 2–15 destinations, 100 km validation and notification | Done |
+| Closed and open route modes | Done |
+| Genetic algorithm on Google Distance Matrix in Cloud Function | Done |
+| Map: numbered pins, route polyline, total distance visible | Done |
+| Firebase login; no access without session | Done |
+| Cloud Function deployed and callable from frontend | Done |
+| IP restriction configured | Done |
+| No API keys or credentials in the repository | Done (use `.gitignore`) |
+| Incremental git commit history | Done |
+| README, `pyproject.toml`, `uv.lock`, `package.json` | Done |
+| User flow and architecture diagrams (draw.io + PNG) | Done |
 | Responsive UI (desktop + mobile) | Done |
-| Incremental git history | In progress |
-| README + dependency files | Done |
-| Diagrams (draw.io) | Done (export PDF/PNG for delivery) |
-| Cloud Function deployed + IP restriction in prod | **You** — follow DEPLOY.md |
 
-## License / course
+## Course
 
-Academic project — ADA route optimization lab.
+Academic project — ADA route optimization lab (genetic algorithms + GCP + Firebase).
