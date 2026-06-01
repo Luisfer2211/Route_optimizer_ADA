@@ -61,7 +61,7 @@ export async function fetchDrivingDistanceMatrix(origins, destinations) {
 
   const response = import.meta.env.DEV
     ? await fetch(`/api/google/distancematrix?${params.toString()}`)
-    : await fetchMapsProxy(`/distance-matrix?${params.toString()}`)
+    : await fetchMapsProxy('distance-matrix', `/distance-matrix?${params.toString()}`)
 
   const data = await parseJsonResponse(
     response,

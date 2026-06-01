@@ -8,7 +8,7 @@ function getOptimizerBaseUrl() {
   return baseUrl.replace(/\/$/, '')
 }
 
-async function getAuthHeaders(extraHeaders = {}) {
+async function getAuthHeaders(proxyService, extraHeaders = {}) {
   const user = auth.currentUser
   if (!user) {
     throw new Error('User must be signed in')
@@ -18,15 +18,17 @@ async function getAuthHeaders(extraHeaders = {}) {
   return {
     ...extraHeaders,
     Authorization: `Bearer ${idToken}`,
+    'X-Maps-Proxy': proxyService,
   }
 }
 
 /**
  * Call Maps REST APIs through the Cloud Function (avoids browser CORS in production).
+ * @param {'distance-matrix'|'directions'|'places-search'} proxyService
  */
-export async function fetchMapsProxy(path, options = {}) {
+export async function fetchMapsProxy(proxyService, path, options = {}) {
   const url = `${getOptimizerBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`
-  const headers = await getAuthHeaders(options.headers ?? {})
+  const headers = await getAuthHeaders(proxyService, options.headers ?? {})
 
   return fetch(url, {
     ...options,

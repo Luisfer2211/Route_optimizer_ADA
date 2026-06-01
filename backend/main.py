@@ -22,7 +22,7 @@ MAX_RADIUS_KM = 100
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Maps-Proxy, X-Dev-Maps-Api-Key",
 }
 
 
@@ -102,6 +102,38 @@ def _request_subpath(request: Request) -> str:
     return path.rstrip("/") or "/"
 
 
+def _get_proxy_kind(request: Request) -> str | None:
+    """Cloud Run often receives path '/' — use X-Maps-Proxy header first."""
+    header_kind = request.headers.get("X-Maps-Proxy", "").strip().lower()
+    if header_kind in ("distance-matrix", "directions", "places-search"):
+        return header_kind
+
+    combined = f"{request.path or ''} {getattr(request, 'full_path', '') or ''}"
+    if "distance-matrix" in combined:
+        return "distance-matrix"
+    if "directions" in combined:
+        return "directions"
+    if "places/search" in combined:
+        return "places-search"
+
+    if request.method == "POST":
+        raw_body = request.get_data(cache=True)
+        if raw_body:
+            try:
+                payload = json.loads(raw_body)
+            except json.JSONDecodeError:
+                payload = None
+            if (
+                isinstance(payload, dict)
+                and "textQuery" in payload
+                and "mode" not in payload
+                and "destinations" not in payload
+            ):
+                return "places-search"
+
+    return None
+
+
 def _require_auth_and_ip(request: Request) -> tuple[str, int, dict[str, str]] | None:
     client_ip = _get_client_ip(request)
     if not _is_ip_allowed(client_ip):
@@ -134,8 +166,9 @@ def optimize_route(request: Request):
         return ("", 204, CORS_HEADERS)
 
     subpath = _request_subpath(request)
+    proxy_kind = _get_proxy_kind(request)
 
-    if subpath.endswith("/distance-matrix"):
+    if proxy_kind == "distance-matrix" or subpath.endswith("/distance-matrix"):
         if request.method != "GET":
             return _error_response("Method not allowed", 405)
         auth_error = _require_auth_and_ip(request)
@@ -147,7 +180,7 @@ def optimize_route(request: Request):
         body, status, headers = proxy_distance_matrix(request, maps_api_key)
         return body, status, {**CORS_HEADERS, **headers}
 
-    if subpath.endswith("/directions"):
+    if proxy_kind == "directions" or subpath.endswith("/directions"):
         if request.method != "GET":
             return _error_response("Method not allowed", 405)
         auth_error = _require_auth_and_ip(request)
@@ -159,7 +192,7 @@ def optimize_route(request: Request):
         body, status, headers = proxy_directions(request, maps_api_key)
         return body, status, {**CORS_HEADERS, **headers}
 
-    if subpath.endswith("/places/search"):
+    if proxy_kind == "places-search" or subpath.endswith("/places/search"):
         if request.method != "POST":
             return _error_response("Method not allowed", 405)
         auth_error = _require_auth_and_ip(request)

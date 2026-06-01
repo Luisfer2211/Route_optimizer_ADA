@@ -131,7 +131,7 @@ async function fetchDirectionsLeg(origin, destination, viaStops = []) {
 
   const response = import.meta.env.DEV
     ? await fetch(`/api/google/directions?${params.toString()}`)
-    : await fetchMapsProxy(`/directions?${params.toString()}`)
+    : await fetchMapsProxy('directions', `/directions?${params.toString()}`)
   const data = await response.json()
 
   if (!response.ok) {

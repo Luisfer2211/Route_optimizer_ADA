@@ -56,7 +56,7 @@ async function searchPlacesGoogle(query) {
 
   const response = import.meta.env.DEV
     ? await fetch('/api/google/places/search', requestInit)
-    : await fetchMapsProxy('/places/search', requestInit)
+    : await fetchMapsProxy('places-search', '/places/search', requestInit)
 
   const text = await response.text()
   let data
@@ -72,7 +72,7 @@ async function searchPlacesGoogle(query) {
     const detail =
       data?.error?.message ?? data?.error ?? `Google Places (${response.status})`
     throw new Error(
-      `${detail}. Habilita "Places API (New)" en Google Cloud.`,
+      typeof detail === 'string' ? detail : 'No se pudo buscar el lugar.',
     )
   }
 
