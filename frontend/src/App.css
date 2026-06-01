@@ -526,6 +526,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
+  flex: 1 1 0;
   min-width: 0;
 }
 
@@ -533,13 +534,18 @@
 .search-results strong {
   color: #0f172a;
   font-size: 0.95rem;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .destination-info span,
 .search-results span {
   color: #64748b;
   font-size: 0.85rem;
-  word-break: break-word;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .btn-small {
@@ -559,6 +565,8 @@
   .app-shell.app-layout {
     padding: 1rem;
     padding-top: 1.25rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
   }
 
   .app-main {
@@ -566,8 +574,79 @@
     gap: 1rem;
   }
 
+  .app-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .destinations-panel,
+  .route-options-panel,
+  .route-result-panel,
+  .map-panel,
+  .radius-banner {
+    padding: 1rem;
+  }
+
+  .destinations-hint {
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+
+  .search-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-row input {
+    flex: none;
+    width: 100%;
+    font-size: 16px;
+  }
+
+  .search-row .btn-primary {
+    width: 100%;
+    margin-top: 0;
+  }
+
   .map-frame {
     border-radius: 10px;
+  }
+
+  .route-result-list li {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .destination-list li {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+    column-gap: 0.75rem;
+    row-gap: 0.35rem;
+    align-items: start;
+  }
+
+  .destination-list .destination-index {
+    grid-row: 1 / span 2;
+    margin-top: 0.1rem;
+  }
+
+  .destination-list .destination-info {
+    grid-column: 2;
+  }
+
+  .destination-list li .btn-small {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-top: 0.35rem;
+  }
+
+  .search-results li {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+
+  .search-results li .btn-small {
+    width: 100%;
   }
 }
 
@@ -578,6 +657,11 @@
 
   .app-header {
     flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 1.25rem;
+  }
+
+  .app-brand {
     align-items: flex-start;
   }
 
@@ -585,12 +669,24 @@
     width: 100%;
   }
 
-  .destination-row {
-    flex-direction: column;
-    align-items: stretch;
+  .destination-list li .btn-small,
+  .search-results li .btn-small {
+    min-height: 2.75rem;
   }
 
-  .btn-small {
-    width: 100%;
+  .route-mode-option {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .route-mode-option strong,
+  .route-mode-option small {
+    line-height: 1.35;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    min-height: 2.75rem;
   }
 }
