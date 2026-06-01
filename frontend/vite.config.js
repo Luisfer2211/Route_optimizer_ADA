@@ -79,7 +79,7 @@ function attachDistanceMatrixProxy(server, apiKey) {
 
 function attachOptimizerProxy(server) {
   const target =
-    process.env.VITE_OPTIMIZER_DEV_URL ?? 'http://127.0.0.1:8080'
+    process.env.VITE_OPTIMIZER_DEV_URL ?? 'http://127.0.0.1:8787'
 
   server.middlewares.use(async (req, res, next) => {
     if (req.url !== '/api/optimize' && !req.url?.startsWith('/api/optimize?')) {
@@ -114,7 +114,7 @@ function attachOptimizerProxy(server) {
       res.end(
         JSON.stringify({
           error:
-            'No se pudo contactar la Cloud Function local (uv run functions-framework --target=optimize_route --port=8080)',
+            'No se pudo contactar la Cloud Function local (cd backend && uv run functions-framework --target=optimize_route --port=8787)',
         }),
       )
     }

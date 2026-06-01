@@ -37,7 +37,7 @@ Set in `backend/.env`:
 
 ```bash
 uv sync
-uv run functions-framework --target=optimize_route --port=8080
+uv run functions-framework --target=optimize_route --port=8787
 ```
 
 ### 2. Frontend
@@ -53,7 +53,7 @@ npm run dev
 
 Open http://localhost:5173 — sign in, add destinations, choose route mode, **Calcular ruta óptima**.
 
-The Vite dev server proxies `/api/optimize` → `http://127.0.0.1:8080`.
+The Vite dev server proxies `/api/optimize` → `http://127.0.0.1:8787` (port 8080 is often blocked on Windows).
 
 **Do not commit** `.env`, service account JSON, or API keys.
 
