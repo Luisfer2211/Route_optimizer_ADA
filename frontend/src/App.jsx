@@ -3,6 +3,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from './services/firebase'
 import AuthForm from './components/AuthForm'
 import DestinationInput from './components/DestinationInput'
+import RouteMap from './components/Map'
 import './App.css'
 
 function App() {
@@ -55,6 +56,7 @@ function App() {
           destinations={destinations}
           onChange={setDestinations}
         />
+        <RouteMap destinations={destinations} />
       </main>
     </div>
   )

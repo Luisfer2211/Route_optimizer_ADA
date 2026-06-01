@@ -133,6 +133,42 @@
 .app-main {
   width: 100%;
   max-width: 960px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.map-panel {
+  width: 100%;
+  padding: 1.5rem;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+  text-align: left;
+}
+
+.map-panel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  color: #0f172a;
+}
+
+.map-panel--muted p,
+.map-empty-hint {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.map-empty-hint {
+  margin-bottom: 0.75rem;
+}
+
+.map-frame {
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
 }
 
 .destinations-panel {
