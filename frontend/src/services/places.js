@@ -31,7 +31,14 @@ export async function searchPlaces(query) {
 
   const response = await fetch(url.toString())
   if (!response.ok) {
-    throw new Error(`Error al buscar lugares (${response.status})`)
+    let detail = ''
+    try {
+      const errBody = await response.json()
+      detail = errBody.error ? `: ${errBody.error}` : ''
+    } catch {
+      /* ignore */
+    }
+    throw new Error(`Error al buscar lugares (${response.status})${detail}`)
   }
 
   const data = await response.json()
