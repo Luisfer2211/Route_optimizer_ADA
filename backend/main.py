@@ -70,19 +70,68 @@ def _error_response(message: str, status: int) -> tuple[str, int, dict[str, str]
     return _json_response({"error": message}, status)
 
 
+def _normalize_ip(ip: str) -> str:
+    ip = ip.strip()
+    if ip.lower().startswith("::ffff:"):
+        return ip.split(":", 3)[-1]
+    return ip
+
+
+def _is_private_ip(ip: str) -> bool:
+    ip = _normalize_ip(ip)
+    if not ip:
+        return True
+    if ":" in ip:
+        lower = ip.lower()
+        return (
+            lower == "::1"
+            or lower.startswith("fe80:")
+            or lower.startswith("fc")
+            or lower.startswith("fd")
+        )
+    parts = ip.split(".")
+    if len(parts) != 4:
+        return False
+    try:
+        octets = [int(part) for part in parts]
+    except ValueError:
+        return False
+    first, second = octets[0], octets[1]
+    return (
+        first == 10
+        or first == 127
+        or (first == 172 and 16 <= second <= 31)
+        or (first == 192 and second == 168)
+        or first == 169
+    )
+
+
 def _get_client_ip(request: Request) -> str:
+    """Best-effort client IP behind Cloud Run / Cloud Functions (Gen 2)."""
     forwarded = request.headers.get("X-Forwarded-For", "")
     if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.remote_addr or ""
+        for part in forwarded.split(","):
+            candidate = _normalize_ip(part)
+            if candidate and not _is_private_ip(candidate):
+                return candidate
+        return _normalize_ip(forwarded.split(",")[0])
+
+    for header in ("X-Real-IP", "True-Client-IP", "CF-Connecting-IP"):
+        candidate = _normalize_ip(request.headers.get(header, ""))
+        if candidate:
+            return candidate
+
+    return _normalize_ip(request.remote_addr or "")
 
 
 def _is_ip_allowed(client_ip: str) -> bool:
     allowed = os.environ.get("ALLOWED_CALLER_IPS", "").strip()
     if not allowed:
         return True
-    allowed_ips = {ip.strip() for ip in allowed.split(",") if ip.strip()}
-    return client_ip in allowed_ips
+    allowed_ips = {
+        _normalize_ip(ip) for ip in allowed.split(",") if ip.strip()
+    }
+    return _normalize_ip(client_ip) in allowed_ips
 
 
 def _get_maps_api_key(request: Request) -> str:
@@ -141,7 +190,11 @@ def _get_proxy_kind(request: Request) -> str | None:
 def _require_auth_and_ip(request: Request) -> tuple[str, int, dict[str, str]] | None:
     client_ip = _get_client_ip(request)
     if not _is_ip_allowed(client_ip):
-        return _error_response("Forbidden IP", 403)
+        return _error_response(
+            f"Forbidden IP (seen: {client_ip or 'unknown'}). "
+            "Add this address to ALLOWED_CALLER_IPS on the Cloud Function.",
+            403,
+        )
 
     try:
         _verify_bearer_token(request)
@@ -210,6 +263,7 @@ def optimize_route(request: Request):
 
     if request.method == "GET" and subpath in ("/", ""):
         maps_key = _get_maps_api_key(request)
+        client_ip = _get_client_ip(request)
         return _json_response(
             {
                 "status": "ok",
@@ -217,6 +271,8 @@ def optimize_route(request: Request):
                 "fromHeader": bool(request.headers.get("X-Dev-Maps-Api-Key")),
                 "fromEnv": bool(os.environ.get("GOOGLE_MAPS_API_KEY")),
                 "fromFile": bool(_read_maps_api_key_from_file()),
+                "clientIp": client_ip,
+                "ipAllowed": _is_ip_allowed(client_ip),
             },
         )
 

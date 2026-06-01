@@ -56,8 +56,22 @@ npm run build
 
 ## 4. IP restriction check
 
-Calls from any IP not listed in `ALLOWED_CALLER_IPS` receive `403 Forbidden IP`.  
-Local dev: leave empty or use `127.0.0.1` when using the Vite proxy.
+Only `ALLOWED_CALLER_IPS` on the Cloud Function controls this (comma-separated).  
+Calls from any other IP receive `403 Forbidden IP (seen: …)`.
+
+**Mobile:** cellular IPs change often and may be **IPv6**. From the phone browser open:
+
+`https://us-central1-route-optimizer-11.cloudfunctions.net/optimize-route`
+
+The JSON field `clientIp` is the address to add. Redeploy with:
+
+```bash
+--set-env-vars '^:^FIREBASE_PROJECT_ID=...:ALLOWED_CALLER_IPS=ip1,ip2,ip3:GOOGLE_MAPS_API_KEY=...'
+```
+
+Use `^:^` and `:` between variables when IPs contain commas (PowerShell).
+
+Local dev: leave `ALLOWED_CALLER_IPS` empty in `backend/.env`.
 
 ## 5. Smoke test
 
