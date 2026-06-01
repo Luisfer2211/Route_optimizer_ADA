@@ -1,53 +1,106 @@
-<mxfile host="app.diagrams.net" agent="Route Optimizer ADA" version="22.1.0">
-  <diagram id="user-flow" name="User flow">
-    <mxGraphModel dx="1100" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+<mxfile host="app.diagrams.net" agent="Route Optimizer ADA" version="22.1.0" type="device">
+  <diagram id="user-flow" name="Flujo de usuario">
+    <mxGraphModel dx="1100" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="1200" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="start" value="Start" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="365" y="20" width="80" height="40" as="geometry" />
+        <mxCell id="title" value="Route Optimizer ADA — Flujo de usuario" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#1e293b;" vertex="1" parent="1">
+          <mxGeometry x="200" y="16" width="400" height="32" as="geometry" />
         </mxCell>
-        <mxCell id="login" value="Firebase login&#xa;(email / password)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="315" y="90" width="180" height="50" as="geometry" />
+        <mxCell id="start" value="Inicio" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="56" width="100" height="44" as="geometry" />
         </mxCell>
-        <mxCell id="dest" value="Add 2–15 destinations&#xa;(Places search)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="315" y="170" width="180" height="50" as="geometry" />
+        <mxCell id="login" value="Iniciar sesión&#xa;Firebase Authentication" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="330" y="128" width="200" height="56" as="geometry" />
         </mxCell>
-        <mxCell id="radius" value="Validate 100 km radius&#xa;(Distance Matrix)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="300" y="250" width="210" height="70" as="geometry" />
+        <mxCell id="fixstart" value="¿Punto de partida?&#xa;(checkbox antes del 1.er destino)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e0e7ff;strokeColor=#6366f1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="310" y="208" width="240" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="reject" value="Show error&#xa;(stop too far)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
-          <mxGeometry x="560" y="255" width="140" height="60" as="geometry" />
+        <mxCell id="fixstart_note" value="Sí → el 1.er destino es salida fija&#xa;No → el optimizador elige inicio" style="text;html=1;strokeColor=none;fillColor=#f8fafc;align=left;fontSize=10;fontColor=#64748b;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="216" width="200" height="48" as="geometry" />
         </mxCell>
-        <mxCell id="mode" value="Choose route mode&#xa;(open / closed)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="315" y="360" width="180" height="50" as="geometry" />
+        <mxCell id="dest" value="Buscar y agregar destinos&#xa;(2 a 15 · Places API)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="330" y="320" width="200" height="56" as="geometry" />
         </mxCell>
-        <mxCell id="calc" value="Cloud Function&#xa;GA + Distance Matrix" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
-          <mxGeometry x="315" y="440" width="180" height="50" as="geometry" />
+        <mxCell id="radius" value="¿Cada parada tiene otra&#xa;a ≤ 100 km por carretera?&#xa;(Distance Matrix vía función)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="295" y="408" width="270" height="88" as="geometry" />
         </mxCell>
-        <mxCell id="view" value="Map: numbered pins,&#xa;road polyline, total km" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="300" y="520" width="210" height="60" as="geometry" />
+        <mxCell id="reject" value="Mostrar error&#xa;(parada muy lejana)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="620" y="420" width="160" height="64" as="geometry" />
         </mxCell>
-        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="start" target="login">
+        <mxCell id="ready" value="¿Al menos 2 destinos&#xa;y validación OK?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="528" width="220" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="mode" value="Elegir modo de ruta&#xa;• Cerrada (vuelve al inicio)&#xa;• Abierta (termina en última parada)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="310" y="632" width="240" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="calc" value="Calcular ruta óptima&#xa;Cloud Function: token + IP + AG&#xa;(fixStart según checkbox)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="310" y="736" width="240" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="view" value="Ver resultado&#xa;• Orden optimizado y km totales&#xa;• Mapa: pines numerados y polilínea&#xa;• Tiempo estimado de conducción" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="840" width="260" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="end" value="Fin" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="960" width="100" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="wait" value="Seguir agregando&#xa;o corregir lista" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#94a3b8;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="536" width="140" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#64748b;" edge="1" parent="1" source="start" target="login">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="login" target="dest">
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#64748b;" edge="1" parent="1" source="login" target="fixstart">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="dest" target="radius">
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#64748b;" edge="1" parent="1" source="fixstart" target="dest">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e4" value="invalid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="radius" target="reject">
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#64748b;" edge="1" parent="1" source="dest" target="radius">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e5" value="valid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="radius" target="mode">
+        <mxCell id="e5" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#dc2626;fontSize=10;fontStyle=1;" edge="1" parent="1" source="radius" target="reject">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="mode" target="calc">
+        <mxCell id="e6" value="Sí" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#16a34a;fontSize=10;fontStyle=1;" edge="1" parent="1" source="radius" target="ready">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="calc" target="view">
+        <mxCell id="e7" value="corregir" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#dc2626;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="reject" target="dest">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="520" />
+              <mxPoint x="700" y="348" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" value="No (&lt;2)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;fontSize=10;" edge="1" parent="1" source="ready" target="wait">
           <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="Sí" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#16a34a;fontSize=10;fontStyle=1;" edge="1" parent="1" source="ready" target="mode">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" value="agregar más" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#64748b;fontSize=10;" edge="1" parent="1" source="wait" target="dest">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="150" y="348" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#64748b;" edge="1" parent="1" source="mode" target="calc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#64748b;" edge="1" parent="1" source="calc" target="view">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#64748b;" edge="1" parent="1" source="view" target="end">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="reintentar otro destino" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#16a34a;fontSize=9;" edge="1" parent="1" source="radius" target="dest">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="260" y="452" />
+              <mxPoint x="260" y="348" />
+            </Array>
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
