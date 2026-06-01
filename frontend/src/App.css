@@ -320,6 +320,21 @@
   color: #334155;
 }
 
+.route-result-summary {
+  margin-bottom: 0.35rem;
+}
+
+.route-result-time-note,
+.route-result-legs-time {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.route-result-legs-time strong {
+  color: #334155;
+}
+
 .route-result-list {
   list-style: none;
   margin: 0;
