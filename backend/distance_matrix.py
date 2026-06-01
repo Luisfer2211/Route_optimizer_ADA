@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Sequence
 
 import requests
+
+BACKEND_DIR = Path(__file__).resolve().parent
 
 DISTANCE_MATRIX_URL = "https://maps.googleapis.com/maps/api/distancematrix/json"
 MAX_DESTINATIONS = 15
@@ -26,6 +29,30 @@ def _format_point(destination: Destination) -> str:
     return f"{destination.lat},{destination.lng}"
 
 
+def _resolve_maps_api_key(explicit_key: str | None = None) -> str:
+    if explicit_key and explicit_key.strip():
+        return explicit_key.strip()
+
+    env_key = os.environ.get("GOOGLE_MAPS_API_KEY", "").strip()
+    if env_key:
+        return env_key
+
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv(BACKEND_DIR / ".env", override=True)
+    except ImportError:
+        pass
+
+    env_key = os.environ.get("GOOGLE_MAPS_API_KEY", "").strip()
+    if env_key:
+        return env_key
+
+    raise ValueError(
+        "GOOGLE_MAPS_API_KEY is not configured. Set it in backend/.env and restart serve.ps1",
+    )
+
+
 def build_distance_matrix(
     destinations: Sequence[Destination],
     api_key: str | None = None,
@@ -41,9 +68,7 @@ def build_distance_matrix(
     if len(destinations) > MAX_DESTINATIONS:
         raise ValueError(f"At most {MAX_DESTINATIONS} destinations are allowed")
 
-    key = api_key or os.environ.get("GOOGLE_MAPS_API_KEY")
-    if not key:
-        raise ValueError("GOOGLE_MAPS_API_KEY is not configured")
+    key = _resolve_maps_api_key(api_key)
 
     n = len(destinations)
     origins = "|".join(_format_point(d) for d in destinations)
