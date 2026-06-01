@@ -54,9 +54,9 @@ async function searchPlacesGoogle(query) {
     body: JSON.stringify({ textQuery: query }),
   }
 
-  const response = import.meta.env.DEV
-    ? await fetch('/api/google/places/search', requestInit)
-    : await fetchMapsProxy('places-search', '/places/search', requestInit)
+  const response = import.meta.env.VITE_ROUTE_OPTIMIZER_URL?.trim()
+    ? await fetchMapsProxy('places-search', '/places/search', requestInit)
+    : await fetch('/api/google/places/search', requestInit)
 
   const text = await response.text()
   let data

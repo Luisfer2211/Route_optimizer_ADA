@@ -59,9 +59,10 @@ export async function fetchDrivingDistanceMatrix(origins, destinations) {
     mode: 'driving',
   })
 
-  const response = import.meta.env.DEV
-    ? await fetch(`/api/google/distancematrix?${params.toString()}`)
-    : await fetchMapsProxy('distance-matrix', `/distance-matrix?${params.toString()}`)
+  const query = params.toString()
+  const response = import.meta.env.VITE_ROUTE_OPTIMIZER_URL?.trim()
+    ? await fetchMapsProxy('distance-matrix', `/distance-matrix?${query}`)
+    : await fetch(`/api/google/distancematrix?${query}`)
 
   const data = await parseJsonResponse(
     response,

@@ -129,9 +129,10 @@ async function fetchDirectionsLeg(origin, destination, viaStops = []) {
     params.set('waypoints', viaStops.map(formatPoint).join('|'))
   }
 
-  const response = import.meta.env.DEV
-    ? await fetch(`/api/google/directions?${params.toString()}`)
-    : await fetchMapsProxy('directions', `/directions?${params.toString()}`)
+  const query = params.toString()
+  const response = import.meta.env.VITE_ROUTE_OPTIMIZER_URL?.trim()
+    ? await fetchMapsProxy('directions', `/directions?${query}`)
+    : await fetch(`/api/google/directions?${query}`)
   const data = await response.json()
 
   if (!response.ok) {
