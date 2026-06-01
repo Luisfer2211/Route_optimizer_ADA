@@ -128,7 +128,7 @@ function attachDistanceMatrixProxy(server, apiKey) {
   })
 }
 
-function attachOptimizerProxy(server, optimizerUrl, mapsApiKey) {
+function attachOptimizerProxy(server, optimizerUrl, envDir, mode) {
   const target = optimizerUrl
 
   server.middlewares.use(async (req, res, next) => {
@@ -137,6 +137,9 @@ function attachOptimizerProxy(server, optimizerUrl, mapsApiKey) {
     }
 
     try {
+      const env = loadEnv(mode, envDir, '')
+      const mapsApiKey = env.VITE_GOOGLE_MAPS_API_KEY ?? ''
+
       const chunks = []
       for await (const chunk of req) {
         chunks.push(chunk)
@@ -176,12 +179,12 @@ function attachOptimizerProxy(server, optimizerUrl, mapsApiKey) {
   })
 }
 
-function devProxies(apiKey, optimizerUrl) {
+function devProxies(envDir, mode, apiKey, optimizerUrl) {
   const attach = (server) => {
     attachLabPlacesProxy(server)
     attachPlacesNewSearchProxy(server, apiKey)
     attachDistanceMatrixProxy(server, apiKey)
-    attachOptimizerProxy(server, optimizerUrl, apiKey)
+    attachOptimizerProxy(server, optimizerUrl, envDir, mode)
   }
   return {
     name: 'dev-api-proxies',
@@ -197,6 +200,8 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       devProxies(
+        process.cwd(),
+        mode,
         env.VITE_GOOGLE_MAPS_API_KEY,
         env.VITE_OPTIMIZER_DEV_URL || 'http://127.0.0.1:8787',
       ),

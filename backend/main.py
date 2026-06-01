@@ -12,7 +12,7 @@ import functions_framework
 from firebase_admin import auth, credentials
 from flask import Request
 
-from distance_matrix import build_distance_matrix
+from distance_matrix import _read_maps_api_key_from_file, build_distance_matrix
 from genetic_algorithm import optimize_order
 from validation import parse_destinations, validate_closest_neighbor_radius
 
@@ -20,7 +20,7 @@ BACKEND_DIR = Path(__file__).resolve().parent
 MAX_RADIUS_KM = 100
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
 }
 
@@ -84,6 +84,14 @@ def _is_ip_allowed(client_ip: str) -> bool:
     return client_ip in allowed_ips
 
 
+def _get_maps_api_key(request: Request) -> str:
+    return (
+        request.headers.get("X-Dev-Maps-Api-Key", "").strip()
+        or os.environ.get("GOOGLE_MAPS_API_KEY", "").strip()
+        or (_read_maps_api_key_from_file() or "")
+    )
+
+
 def _verify_bearer_token(request: Request) -> dict[str, Any]:
     header = request.headers.get("Authorization", "")
     if not header.startswith("Bearer "):
@@ -99,6 +107,18 @@ def optimize_route(request: Request):
     """Validate auth and IP, then run genetic algorithm on distance matrix."""
     if request.method == "OPTIONS":
         return ("", 204, CORS_HEADERS)
+
+    if request.method == "GET":
+        maps_key = _get_maps_api_key(request)
+        return _json_response(
+            {
+                "status": "ok",
+                "mapsKeyConfigured": bool(maps_key),
+                "fromHeader": bool(request.headers.get("X-Dev-Maps-Api-Key")),
+                "fromEnv": bool(os.environ.get("GOOGLE_MAPS_API_KEY")),
+                "fromFile": bool(_read_maps_api_key_from_file()),
+            },
+        )
 
     if request.method != "POST":
         return _error_response("Method not allowed", 405)
@@ -125,11 +145,14 @@ def optimize_route(request: Request):
     try:
         destinations = parse_destinations(payload.get("destinations"))
         _load_local_env()
-        maps_api_key = (
-            request.headers.get("X-Dev-Maps-Api-Key", "").strip()
-            or os.environ.get("GOOGLE_MAPS_API_KEY", "").strip()
-        )
-        matrix = build_distance_matrix(destinations, api_key=maps_api_key or None)
+        maps_api_key = _get_maps_api_key(request)
+        if not maps_api_key:
+            return _error_response(
+                "GOOGLE_MAPS_API_KEY missing. Check backend/.env, restart serve.ps1, "
+                "and open http://127.0.0.1:8787 in the browser to diagnose.",
+                500,
+            )
+        matrix = build_distance_matrix(destinations, api_key=maps_api_key)
         validate_closest_neighbor_radius(matrix, MAX_RADIUS_KM)
         order, total_distance_km = optimize_order(matrix, mode=mode)
     except ValueError as exc:
