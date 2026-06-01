@@ -29,6 +29,23 @@ def _format_point(destination: Destination) -> str:
     return f"{destination.lat},{destination.lng}"
 
 
+def _read_maps_api_key_from_file() -> str | None:
+    env_path = BACKEND_DIR / ".env"
+    if not env_path.is_file():
+        return None
+
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if not stripped.startswith("GOOGLE_MAPS_API_KEY="):
+            continue
+        value = stripped.split("=", 1)[1].strip().strip('"').strip("'")
+        return value or None
+
+    return None
+
+
 def _resolve_maps_api_key(explicit_key: str | None = None) -> str:
     if explicit_key and explicit_key.strip():
         return explicit_key.strip()
@@ -37,16 +54,19 @@ def _resolve_maps_api_key(explicit_key: str | None = None) -> str:
     if env_key:
         return env_key
 
+    file_key = _read_maps_api_key_from_file()
+    if file_key:
+        return file_key
+
     try:
         from dotenv import load_dotenv
 
         load_dotenv(BACKEND_DIR / ".env", override=True)
+        env_key = os.environ.get("GOOGLE_MAPS_API_KEY", "").strip()
+        if env_key:
+            return env_key
     except ImportError:
         pass
-
-    env_key = os.environ.get("GOOGLE_MAPS_API_KEY", "").strip()
-    if env_key:
-        return env_key
 
     raise ValueError(
         "GOOGLE_MAPS_API_KEY is not configured. Set it in backend/.env and restart serve.ps1",

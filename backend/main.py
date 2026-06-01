@@ -125,7 +125,10 @@ def optimize_route(request: Request):
     try:
         destinations = parse_destinations(payload.get("destinations"))
         _load_local_env()
-        maps_api_key = os.environ.get("GOOGLE_MAPS_API_KEY", "").strip()
+        maps_api_key = (
+            request.headers.get("X-Dev-Maps-Api-Key", "").strip()
+            or os.environ.get("GOOGLE_MAPS_API_KEY", "").strip()
+        )
         matrix = build_distance_matrix(destinations, api_key=maps_api_key or None)
         validate_closest_neighbor_radius(matrix, MAX_RADIUS_KM)
         order, total_distance_km = optimize_order(matrix, mode=mode)
