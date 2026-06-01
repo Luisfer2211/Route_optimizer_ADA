@@ -103,7 +103,11 @@ def _request_subpath(request: Request) -> str:
 
 
 def _get_proxy_kind(request: Request) -> str | None:
-    """Cloud Run often receives path '/' — use X-Maps-Proxy header first."""
+    """Cloud Run often receives path '/' — use mapsProxy query param or header."""
+    query_kind = request.args.get("mapsProxy", "").strip().lower()
+    if query_kind in ("distance-matrix", "directions", "places-search"):
+        return query_kind
+
     header_kind = request.headers.get("X-Maps-Proxy", "").strip().lower()
     if header_kind in ("distance-matrix", "directions", "places-search"):
         return header_kind

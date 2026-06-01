@@ -8,7 +8,7 @@ function getOptimizerBaseUrl() {
   return baseUrl.replace(/\/$/, '')
 }
 
-async function getAuthHeaders(proxyService, extraHeaders = {}) {
+async function getAuthHeaders(extraHeaders = {}) {
   const user = auth.currentUser
   if (!user) {
     throw new Error('User must be signed in')
@@ -18,17 +18,26 @@ async function getAuthHeaders(proxyService, extraHeaders = {}) {
   return {
     ...extraHeaders,
     Authorization: `Bearer ${idToken}`,
-    'X-Maps-Proxy': proxyService,
   }
+}
+
+function appendProxyQuery(path, proxyService) {
+  const separator = path.includes('?') ? '&' : '?'
+  return `${path}${separator}mapsProxy=${encodeURIComponent(proxyService)}`
 }
 
 /**
  * Call Maps REST APIs through the Cloud Function (avoids browser CORS in production).
+ * Uses ?mapsProxy= query param so preflight does not require a custom header.
  * @param {'distance-matrix'|'directions'|'places-search'} proxyService
  */
 export async function fetchMapsProxy(proxyService, path, options = {}) {
-  const url = `${getOptimizerBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`
-  const headers = await getAuthHeaders(proxyService, options.headers ?? {})
+  const pathWithProxy = appendProxyQuery(
+    path.startsWith('/') ? path : `/${path}`,
+    proxyService,
+  )
+  const url = `${getOptimizerBaseUrl()}${pathWithProxy}`
+  const headers = await getAuthHeaders(options.headers ?? {})
 
   return fetch(url, {
     ...options,
