@@ -4,6 +4,7 @@ import { auth } from './services/firebase'
 import AuthForm from './components/AuthForm'
 import DestinationInput from './components/DestinationInput'
 import RouteMap from './components/Map'
+import RadiusValidation from './components/RadiusValidation'
 import './App.css'
 
 function App() {
@@ -56,6 +57,7 @@ function App() {
           destinations={destinations}
           onChange={setDestinations}
         />
+        <RadiusValidation destinations={destinations} />
         <RouteMap destinations={destinations} />
       </main>
     </div>

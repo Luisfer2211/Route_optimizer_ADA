@@ -138,6 +138,26 @@
   gap: 1.25rem;
 }
 
+.radius-banner {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.radius-banner--ok {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+}
+
+.radius-banner--error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
 .map-panel {
   width: 100%;
   padding: 1.5rem;

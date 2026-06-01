@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { searchPlaces } from '../services/places'
+import { canAddDestination, MAX_RADIUS_KM } from '../utils/distance'
 
 const MAX_DESTINATIONS = 15
 const MIN_DESTINATIONS = 2
@@ -62,6 +63,14 @@ export default function DestinationInput({ destinations, onChange }) {
       return
     }
 
+    const radiusCheck = canAddDestination(place, destinations)
+    if (!radiusCheck.allowed) {
+      setError(
+        `"${place.name}" queda a ${radiusCheck.distanceKm.toFixed(1)} km de "${radiusCheck.from.name}" (máximo ${MAX_RADIUS_KM} km entre paradas).`,
+      )
+      return
+    }
+
     setError('')
     onChange([
       ...destinations,
@@ -81,7 +90,7 @@ export default function DestinationInput({ destinations, onChange }) {
       <h2>Destinos</h2>
       <p className="destinations-hint">
         Agrega entre {MIN_DESTINATIONS} y {MAX_DESTINATIONS} paradas ({destinations.length}/
-        {MAX_DESTINATIONS}).
+        {MAX_DESTINATIONS}). Todas deben estar a como máximo {MAX_RADIUS_KM} km entre sí.
       </p>
 
       <form className="search-form" onSubmit={handleSearch}>
