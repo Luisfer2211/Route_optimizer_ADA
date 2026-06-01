@@ -1,6 +1,4 @@
-const DIRECTIONS_BASE = import.meta.env.DEV
-  ? '/api/google/directions'
-  : 'https://maps.googleapis.com/maps/api/directions/json'
+import { fetchMapsProxy } from './mapsProxy'
 
 /** @typedef {'outbound' | 'return' | 'full'} RouteLegRole */
 
@@ -131,21 +129,9 @@ async function fetchDirectionsLeg(origin, destination, viaStops = []) {
     params.set('waypoints', viaStops.map(formatPoint).join('|'))
   }
 
-  if (!import.meta.env.DEV) {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-    if (!apiKey) {
-      return {
-        path: [],
-        legs: [],
-        legDurations: [],
-        totalDurationSeconds: 0,
-        error: 'VITE_GOOGLE_MAPS_API_KEY is not configured',
-      }
-    }
-    params.set('key', apiKey)
-  }
-
-  const response = await fetch(`${DIRECTIONS_BASE}?${params.toString()}`)
+  const response = import.meta.env.DEV
+    ? await fetch(`/api/google/directions?${params.toString()}`)
+    : await fetchMapsProxy(`/directions?${params.toString()}`)
   const data = await response.json()
 
   if (!response.ok) {

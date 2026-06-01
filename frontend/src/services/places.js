@@ -1,3 +1,5 @@
+import { fetchMapsProxy } from './mapsProxy'
+
 function getLabPlacesBaseUrl() {
   if (import.meta.env.DEV) {
     return '/api/lab/places'
@@ -46,23 +48,15 @@ async function searchPlacesLab(query) {
 }
 
 async function searchPlacesGoogle(query) {
-  const response = await fetch(
-    import.meta.env.DEV
-      ? '/api/google/places/search'
-      : 'https://places.googleapis.com/v1/places:searchText',
-    {
-      method: 'POST',
-      headers: import.meta.env.DEV
-        ? { 'Content-Type': 'application/json' }
-        : {
-            'Content-Type': 'application/json',
-            'X-Goog-Api-Key': import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '',
-            'X-Goog-FieldMask':
-              'places.displayName,places.formattedAddress,places.location',
-          },
-      body: JSON.stringify({ textQuery: query }),
-    },
-  )
+  const requestInit = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ textQuery: query }),
+  }
+
+  const response = import.meta.env.DEV
+    ? await fetch('/api/google/places/search', requestInit)
+    : await fetchMapsProxy('/places/search', requestInit)
 
   const text = await response.text()
   let data
@@ -87,7 +81,7 @@ async function searchPlacesGoogle(query) {
 
 /**
  * Search places: lab Cloud Function in local dev only (Vite proxy avoids CORS).
- * Production uses Places API (New) from the browser.
+ * Production uses Places API (New) via the Cloud Function proxy (no browser CORS).
  */
 export async function searchPlaces(query) {
   const trimmed = query.trim()

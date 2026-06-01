@@ -14,6 +14,7 @@ from flask import Request
 
 from distance_matrix import _read_maps_api_key_from_file, build_distance_matrix
 from genetic_algorithm import optimize_order
+from maps_proxy import proxy_directions, proxy_distance_matrix, proxy_places_search
 from validation import parse_destinations, validate_closest_neighbor_radius
 
 BACKEND_DIR = Path(__file__).resolve().parent
@@ -92,6 +93,30 @@ def _get_maps_api_key(request: Request) -> str:
     )
 
 
+def _request_subpath(request: Request) -> str:
+    path = request.path or "/"
+    for suffix in ("/optimize-route",):
+        if path.endswith(suffix):
+            path = path[: -len(suffix)] or "/"
+            break
+    return path.rstrip("/") or "/"
+
+
+def _require_auth_and_ip(request: Request) -> tuple[str, int, dict[str, str]] | None:
+    client_ip = _get_client_ip(request)
+    if not _is_ip_allowed(client_ip):
+        return _error_response("Forbidden IP", 403)
+
+    try:
+        _verify_bearer_token(request)
+    except ValueError as exc:
+        return _error_response(str(exc), 401)
+    except Exception:
+        return _error_response("Invalid or expired authentication token", 401)
+
+    return None
+
+
 def _verify_bearer_token(request: Request) -> dict[str, Any]:
     header = request.headers.get("Authorization", "")
     if not header.startswith("Bearer "):
@@ -104,11 +129,49 @@ def _verify_bearer_token(request: Request) -> dict[str, Any]:
 
 @functions_framework.http
 def optimize_route(request: Request):
-    """Validate auth and IP, then run genetic algorithm on distance matrix."""
+    """Route optimizer API, Maps proxies, and health check."""
     if request.method == "OPTIONS":
         return ("", 204, CORS_HEADERS)
 
-    if request.method == "GET":
+    subpath = _request_subpath(request)
+
+    if subpath.endswith("/distance-matrix"):
+        if request.method != "GET":
+            return _error_response("Method not allowed", 405)
+        auth_error = _require_auth_and_ip(request)
+        if auth_error:
+            return auth_error
+        maps_api_key = _get_maps_api_key(request)
+        if not maps_api_key:
+            return _error_response("GOOGLE_MAPS_API_KEY is not configured", 500)
+        body, status, headers = proxy_distance_matrix(request, maps_api_key)
+        return body, status, {**CORS_HEADERS, **headers}
+
+    if subpath.endswith("/directions"):
+        if request.method != "GET":
+            return _error_response("Method not allowed", 405)
+        auth_error = _require_auth_and_ip(request)
+        if auth_error:
+            return auth_error
+        maps_api_key = _get_maps_api_key(request)
+        if not maps_api_key:
+            return _error_response("GOOGLE_MAPS_API_KEY is not configured", 500)
+        body, status, headers = proxy_directions(request, maps_api_key)
+        return body, status, {**CORS_HEADERS, **headers}
+
+    if subpath.endswith("/places/search"):
+        if request.method != "POST":
+            return _error_response("Method not allowed", 405)
+        auth_error = _require_auth_and_ip(request)
+        if auth_error:
+            return auth_error
+        maps_api_key = _get_maps_api_key(request)
+        if not maps_api_key:
+            return _error_response("GOOGLE_MAPS_API_KEY is not configured", 500)
+        body, status, headers = proxy_places_search(request, maps_api_key)
+        return body, status, {**CORS_HEADERS, **headers}
+
+    if request.method == "GET" and subpath in ("/", ""):
         maps_key = _get_maps_api_key(request)
         return _json_response(
             {
@@ -123,16 +186,9 @@ def optimize_route(request: Request):
     if request.method != "POST":
         return _error_response("Method not allowed", 405)
 
-    client_ip = _get_client_ip(request)
-    if not _is_ip_allowed(client_ip):
-        return _error_response("Forbidden IP", 403)
-
-    try:
-        _verify_bearer_token(request)
-    except ValueError as exc:
-        return _error_response(str(exc), 401)
-    except Exception:
-        return _error_response("Invalid or expired authentication token", 401)
+    auth_error = _require_auth_and_ip(request)
+    if auth_error:
+        return auth_error
 
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):

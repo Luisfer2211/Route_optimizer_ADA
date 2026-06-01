@@ -1,8 +1,6 @@
-export const MAX_RADIUS_KM = 100
+import { fetchMapsProxy } from './mapsProxy'
 
-const MATRIX_BASE = import.meta.env.DEV
-  ? '/api/google/distancematrix'
-  : 'https://maps.googleapis.com/maps/api/distancematrix/json'
+export const MAX_RADIUS_KM = 100
 
 function formatPoint(point) {
   return `${point.lat},${point.lng}`
@@ -33,6 +31,22 @@ function parseMatrixResponse(data, originCount, destinationCount) {
   return matrix
 }
 
+async function parseJsonResponse(response, fallbackMessage) {
+  const text = await response.text()
+  let data
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error(fallbackMessage)
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || data.error_message || fallbackMessage)
+  }
+
+  return data
+}
+
 /** Driving distances (km) via Google Distance Matrix API. */
 export async function fetchDrivingDistanceMatrix(origins, destinations) {
   if (origins.length === 0 || destinations.length === 0) {
@@ -45,26 +59,14 @@ export async function fetchDrivingDistanceMatrix(origins, destinations) {
     mode: 'driving',
   })
 
-  if (!import.meta.env.DEV) {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-    if (!apiKey) {
-      throw new Error('VITE_GOOGLE_MAPS_API_KEY is not configured')
-    }
-    params.set('key', apiKey)
-  }
+  const response = import.meta.env.DEV
+    ? await fetch(`/api/google/distancematrix?${params.toString()}`)
+    : await fetchMapsProxy(`/distance-matrix?${params.toString()}`)
 
-  const response = await fetch(`${MATRIX_BASE}?${params.toString()}`)
-  const text = await response.text()
-  let data
-  try {
-    data = JSON.parse(text)
-  } catch {
-    throw new Error('No se pudo consultar distancias por carretera')
-  }
-
-  if (!response.ok) {
-    throw new Error(data.error || 'No se pudo consultar distancias por carretera')
-  }
+  const data = await parseJsonResponse(
+    response,
+    'No se pudo consultar distancias por carretera',
+  )
 
   return parseMatrixResponse(data, origins.length, destinations.length)
 }
