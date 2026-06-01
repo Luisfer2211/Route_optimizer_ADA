@@ -1,0 +1,15 @@
+[project]
+name = "route-optimizer-backend"
+version = "0.1.0"
+description = "Cloud Function: distance matrix + genetic algorithm for TSP"
+requires-python = ">=3.11"
+dependencies = [
+    "functions-framework>=3.8.0",
+    "requests>=2.32.0",
+    "firebase-admin>=6.6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]

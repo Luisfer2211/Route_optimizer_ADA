@@ -1,0 +1,29 @@
+# Secrets and local config
+.env
+.env.local
+.env.*.local
+importante.txt
+
+# Service account keys (never commit)
+*-firebase-adminsdk-*.json
+credentials.json
+serviceAccount*.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.python-version
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+
+# IDE and OS
+.vscode/
+.idea/
+*.log
+.DS_Store
+Thumbs.db
