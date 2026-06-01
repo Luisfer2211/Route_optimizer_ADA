@@ -25,7 +25,7 @@ route-optimizer/
 cd frontend
 cp .env.example .env
 # Fill VITE_FIREBASE_* from Firebase Console → Project settings → Your apps
-# Fill VITE_GOOGLE_MAPS_API_KEY (Maps JavaScript API, referrer: http://localhost:* )
+# Fill VITE_GOOGLE_MAPS_API_KEY (Maps JavaScript + Distance Matrix APIs enabled)
 npm install
 npm run dev
 ```
@@ -60,7 +60,7 @@ uv sync
 
 - [x] Firebase Auth (email/password) in React
 - [x] Destinations search (lab API) + map with numbered pins
-- [x] 100 km validation (each stop within 100 km of its closest neighbor)
+- [x] 100 km validation by driving distance (Distance Matrix, closest neighbor)
 - [ ] Genetic algorithm + Distance Matrix
 - [ ] Cloud Function deploy + IP restriction
 - [ ] Google Maps route visualization

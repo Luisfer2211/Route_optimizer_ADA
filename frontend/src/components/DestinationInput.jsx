@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { searchPlaces } from '../services/places'
-import { canAddDestination, MAX_RADIUS_KM } from '../utils/distance'
+import { canAddDestination, MAX_RADIUS_KM } from '../services/roadDistance'
 
 const MAX_DESTINATIONS = 15
 const MIN_DESTINATIONS = 2
@@ -13,6 +13,7 @@ export default function DestinationInput({ destinations, onChange }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
+  const [checkingDistance, setCheckingDistance] = useState(false)
   const [error, setError] = useState('')
 
   const atMax = destinations.length >= MAX_DESTINATIONS
@@ -41,7 +42,7 @@ export default function DestinationInput({ destinations, onChange }) {
     }
   }
 
-  function addDestination(place) {
+  async function addDestination(place) {
     if (atMax) {
       setError(`Máximo ${MAX_DESTINATIONS} destinos.`)
       return
@@ -63,21 +64,28 @@ export default function DestinationInput({ destinations, onChange }) {
       return
     }
 
-    const radiusCheck = canAddDestination(place, destinations)
-    if (!radiusCheck.allowed) {
-      setError(
-        `La parada más cercana a "${place.name}" es "${radiusCheck.from.name}" (${radiusCheck.distanceKm.toFixed(1)} km). Máximo permitido: ${MAX_RADIUS_KM} km.`,
-      )
-      return
-    }
-
+    setCheckingDistance(true)
     setError('')
-    onChange([
-      ...destinations,
-      { id: createDestinationId(), ...place },
-    ])
-    setResults([])
-    setQuery('')
+    try {
+      const radiusCheck = await canAddDestination(place, destinations)
+      if (!radiusCheck.allowed) {
+        setError(
+          `Por carretera, la parada más cercana a "${place.name}" es "${radiusCheck.from.name}" (${radiusCheck.distanceKm.toFixed(1)} km). Máximo: ${MAX_RADIUS_KM} km.`,
+        )
+        return
+      }
+
+      onChange([
+        ...destinations,
+        { id: createDestinationId(), ...place },
+      ])
+      setResults([])
+      setQuery('')
+    } catch (err) {
+      setError(err.message || 'No se pudo validar la distancia por carretera.')
+    } finally {
+      setCheckingDistance(false)
+    }
   }
 
   function removeDestination(id) {
@@ -90,8 +98,8 @@ export default function DestinationInput({ destinations, onChange }) {
       <h2>Destinos</h2>
       <p className="destinations-hint">
         Agrega entre {MIN_DESTINATIONS} y {MAX_DESTINATIONS} paradas ({destinations.length}/
-        {MAX_DESTINATIONS}). Cada una debe tener otra parada a como máximo{' '}
-        {MAX_RADIUS_KM} km (la más cercana).
+        {MAX_DESTINATIONS}). Cada una debe tener otra parada a ≤ {MAX_RADIUS_KM}{' '}
+        km por carretera (Google Distance Matrix).
       </p>
 
       <form className="search-form" onSubmit={handleSearch}>
@@ -103,9 +111,13 @@ export default function DestinationInput({ destinations, onChange }) {
             placeholder="Ej. Centro Histórico, Ciudad de México"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            disabled={atMax || loading}
+            disabled={atMax || loading || checkingDistance}
           />
-          <button type="submit" className="btn-primary" disabled={atMax || loading}>
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={atMax || loading || checkingDistance}
+          >
             {loading ? 'Buscando…' : 'Buscar'}
           </button>
         </div>
@@ -124,10 +136,10 @@ export default function DestinationInput({ destinations, onChange }) {
               <button
                 type="button"
                 className="btn-secondary btn-small"
-                disabled={atMax}
+                disabled={atMax || checkingDistance}
                 onClick={() => addDestination(place)}
               >
-                Agregar
+                {checkingDistance ? 'Validando…' : 'Agregar'}
               </button>
             </li>
           ))}
