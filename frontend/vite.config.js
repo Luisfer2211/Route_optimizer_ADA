@@ -33,9 +33,9 @@ function attachLabPlacesProxy(server) {
   })
 }
 
-function attachPlacesTextSearchProxy(server, apiKey) {
+function attachPlacesNewSearchProxy(server, apiKey) {
   server.middlewares.use(async (req, res, next) => {
-    if (!req.url?.startsWith('/api/google/places/textsearch')) {
+    if (req.url !== '/api/google/places/search' || req.method !== 'POST') {
       return next()
     }
 
@@ -49,17 +49,27 @@ function attachPlacesTextSearchProxy(server, apiKey) {
       return
     }
 
-    const incoming = new URL(req.url, 'http://localhost')
-    const upstream = new URL(
-      'https://maps.googleapis.com/maps/api/place/textsearch/json',
-    )
-    incoming.searchParams.forEach((value, key) => {
-      upstream.searchParams.set(key, value)
-    })
-    upstream.searchParams.set('key', apiKey)
-
     try {
-      const response = await fetch(upstream.toString())
+      const chunks = []
+      for await (const chunk of req) {
+        chunks.push(chunk)
+      }
+      const requestBody = Buffer.concat(chunks)
+
+      const response = await fetch(
+        'https://places.googleapis.com/v1/places:searchText',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': apiKey,
+            'X-Goog-FieldMask':
+              'places.displayName,places.formattedAddress,places.location',
+          },
+          body: requestBody,
+        },
+      )
+
       const body = await response.text()
       res.statusCode = response.status
       res.setHeader(
@@ -69,7 +79,7 @@ function attachPlacesTextSearchProxy(server, apiKey) {
       res.end(body)
     } catch {
       res.statusCode = 502
-      res.end(JSON.stringify({ error: 'No se pudo contactar Places API' }))
+      res.end(JSON.stringify({ error: 'No se pudo contactar Places API (New)' }))
     }
   })
 }
@@ -165,7 +175,7 @@ function attachOptimizerProxy(server) {
 function devProxies(apiKey) {
   const attach = (server) => {
     attachLabPlacesProxy(server)
-    attachPlacesTextSearchProxy(server, apiKey)
+    attachPlacesNewSearchProxy(server, apiKey)
     attachDistanceMatrixProxy(server, apiKey)
     attachOptimizerProxy(server)
   }

@@ -14,15 +14,6 @@ export function normalizePlace(rawPlace) {
   }
 }
 
-function normalizeGoogleTextSearchResult(result) {
-  return {
-    name: result.name ?? 'Sin nombre',
-    address: result.formatted_address ?? '',
-    lat: result.geometry?.location?.lat,
-    lng: result.geometry?.location?.lng,
-  }
-}
-
 async function searchPlacesLab(query) {
   const baseUrl = getLabPlacesBaseUrl()
   if (!baseUrl) {
@@ -49,32 +40,39 @@ async function searchPlacesLab(query) {
 }
 
 async function searchPlacesGoogle(query) {
-  const url = new URL(
-    '/api/google/places/textsearch',
-    import.meta.env.DEV ? window.location.origin : undefined,
+  const response = await fetch(
+    import.meta.env.DEV
+      ? '/api/google/places/search'
+      : 'https://places.googleapis.com/v1/places:searchText',
+    {
+      method: 'POST',
+      headers: import.meta.env.DEV
+        ? { 'Content-Type': 'application/json' }
+        : {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '',
+            'X-Goog-FieldMask':
+              'places.displayName,places.formattedAddress,places.location',
+          },
+      body: JSON.stringify({ textQuery: query }),
+    },
   )
-  url.searchParams.set('query', query)
 
-  const response = await fetch(url.toString())
   const data = await response.json()
 
   if (!response.ok) {
-    throw new Error(data?.error ?? `Google Places (${response.status})`)
-  }
-
-  const status = data.status
-  if (status !== 'OK' && status !== 'ZERO_RESULTS') {
+    const detail =
+      data?.error?.message ?? data?.error ?? `Google Places (${response.status})`
     throw new Error(
-      data.error_message ??
-        `Google Places: ${status}. Habilita Places API en tu key.`,
+      `${detail}. Habilita "Places API (New)" en Google Cloud.`,
     )
   }
 
-  return (data.results ?? []).map(normalizeGoogleTextSearchResult)
+  return (data.places ?? []).map(normalizePlace)
 }
 
 /**
- * Search places: lab Cloud Function first, then Google Places Text Search (fallback).
+ * Search places: lab Cloud Function first, then Places API (New) fallback.
  */
 export async function searchPlaces(query) {
   const trimmed = query.trim()
