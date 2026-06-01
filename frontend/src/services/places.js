@@ -1,4 +1,10 @@
-const placesUrl = import.meta.env.VITE_LAB_PLACES_URL
+function getPlacesSearchBaseUrl() {
+  // In dev, Vite proxies /api/lab/places → lab Cloud Function (no CORS in browser).
+  if (import.meta.env.DEV) {
+    return '/api/lab/places'
+  }
+  return import.meta.env.VITE_LAB_PLACES_URL
+}
 
 export function normalizePlace(rawPlace) {
   return {
@@ -10,7 +16,8 @@ export function normalizePlace(rawPlace) {
 }
 
 export async function searchPlaces(query) {
-  if (!placesUrl) {
+  const baseUrl = getPlacesSearchBaseUrl()
+  if (!baseUrl) {
     throw new Error('VITE_LAB_PLACES_URL no está configurada')
   }
 
@@ -19,7 +26,7 @@ export async function searchPlaces(query) {
     return []
   }
 
-  const url = new URL(placesUrl)
+  const url = new URL(baseUrl, import.meta.env.DEV ? window.location.origin : undefined)
   url.searchParams.set('place', trimmed)
 
   const response = await fetch(url.toString())

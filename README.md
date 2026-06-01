@@ -33,6 +33,15 @@ Open http://localhost:5173 — sign in or create an account.
 
 **Do not commit** `.env`, `importante.txt`, or any API keys.
 
+### Firebase vs lab GCP
+
+- **Firebase (`route-optimizer-11`)**: login only (Authentication). No need to move the lab into Firebase.
+- **Lab GCP (`lab-ada-mapas`)**: shared Places Cloud Function for the course. The frontend calls it by URL; it is not part of your Firebase project.
+
+### Places search and CORS
+
+`hello.py` works because Python is not a browser. In the browser, the lab function must allow CORS or you proxy the request. **Local dev** uses Vite (`/api/lab/places` → lab function). For a **production** build you may later proxy through your own Cloud Function.
+
 ## Backend (local, later)
 
 ```bash
