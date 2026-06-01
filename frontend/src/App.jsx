@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from './services/firebase'
 import AuthForm from './components/AuthForm'
+import DestinationInput from './components/DestinationInput'
 import './App.css'
 
 function App() {
   const [user, setUser] = useState(null)
   const [authReady, setAuthReady] = useState(false)
+  const [destinations, setDestinations] = useState([])
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -37,7 +39,7 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell app-layout">
       <header className="app-header">
         <div>
           <h1>Optimizador de rutas</h1>
@@ -49,9 +51,10 @@ function App() {
       </header>
 
       <main className="app-main">
-        <p className="placeholder">
-          Sesión activa. Aquí irán los destinos, el mapa y el cálculo de la ruta.
-        </p>
+        <DestinationInput
+          destinations={destinations}
+          onChange={setDestinations}
+        />
       </main>
     </div>
   )

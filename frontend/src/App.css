@@ -8,6 +8,11 @@
   box-sizing: border-box;
 }
 
+.app-shell.app-layout {
+  justify-content: flex-start;
+  padding-top: 2rem;
+}
+
 .loading-text {
   color: #64748b;
 }
@@ -130,13 +135,131 @@
   max-width: 960px;
 }
 
-.placeholder {
+.destinations-panel {
+  width: 100%;
   padding: 1.5rem;
   border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+  text-align: left;
+}
+
+.destinations-panel h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.25rem;
+  color: #0f172a;
+}
+
+.destinations-hint {
+  margin: 0 0 1rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.search-form label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #334155;
+  margin-bottom: 0.35rem;
+}
+
+.search-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.search-row input {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.destinations-error {
+  margin: 0.75rem 0 0;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+.search-results,
+.destination-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.search-results li,
+.destination-list li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
   background: #f8fafc;
-  border: 1px dashed #cbd5e1;
-  color: #475569;
-  text-align: center;
+}
+
+.destination-list {
+  counter-reset: none;
+}
+
+.destination-list li {
+  align-items: center;
+}
+
+.destination-index {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.destination-info,
+.search-results li > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.destination-info strong,
+.search-results strong {
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.destination-info span,
+.search-results span {
+  color: #64748b;
+  font-size: 0.85rem;
+  word-break: break-word;
+}
+
+.btn-small {
+  margin-top: 0;
+  flex-shrink: 0;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.destinations-empty {
+  margin: 1rem 0 0;
+  color: #94a3b8;
+  font-size: 0.9rem;
 }
 
 @media (max-width: 480px) {
