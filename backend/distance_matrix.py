@@ -1,19 +1,77 @@
 """Build distance matrix using Google Maps Distance Matrix API."""
 
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
 from typing import Sequence
 
+import requests
 
+DISTANCE_MATRIX_URL = "https://maps.googleapis.com/maps/api/distancematrix/json"
+MAX_DESTINATIONS = 15
+
+
+@dataclass(frozen=True)
 class Destination:
     """A stop with latitude and longitude."""
 
-    def __init__(self, lat: float, lng: float) -> None:
-        self.lat = lat
-        self.lng = lng
+    lat: float
+    lng: float
+    name: str = ""
+    id: str = ""
+
+
+def _format_point(destination: Destination) -> str:
+    return f"{destination.lat},{destination.lng}"
 
 
 def build_distance_matrix(
     destinations: Sequence[Destination],
-    api_key: str,
+    api_key: str | None = None,
 ) -> list[list[float]]:
-    """Fetch pairwise road distances and return an NxN matrix."""
-    raise NotImplementedError("Distance matrix not implemented yet")
+    """
+    Fetch pairwise driving distances (km) and return an NxN matrix.
+
+    matrix[i][j] is the driving distance from destination i to j.
+    """
+    if not destinations:
+        return []
+
+    if len(destinations) > MAX_DESTINATIONS:
+        raise ValueError(f"At most {MAX_DESTINATIONS} destinations are allowed")
+
+    key = api_key or os.environ.get("GOOGLE_MAPS_API_KEY")
+    if not key:
+        raise ValueError("GOOGLE_MAPS_API_KEY is not configured")
+
+    n = len(destinations)
+    origins = "|".join(_format_point(d) for d in destinations)
+    params = {
+        "origins": origins,
+        "destinations": origins,
+        "mode": "driving",
+        "units": "metric",
+        "key": key,
+    }
+
+    response = requests.get(DISTANCE_MATRIX_URL, params=params, timeout=30)
+    response.raise_for_status()
+    payload = response.json()
+
+    if payload.get("status") != "OK":
+        message = payload.get("error_message") or payload.get("status")
+        raise RuntimeError(f"Distance Matrix API error: {message}")
+
+    matrix: list[list[float]] = [[0.0] * n for _ in range(n)]
+
+    for row_index, row in enumerate(payload.get("rows", [])):
+        for col_index, element in enumerate(row.get("elements", [])):
+            if element.get("status") != "OK":
+                origin = destinations[row_index].name or f"stop {row_index + 1}"
+                dest = destinations[col_index].name or f"stop {col_index + 1}"
+                raise RuntimeError(f"No driving route between {origin} and {dest}")
+            meters = element["distance"]["value"]
+            matrix[row_index][col_index] = meters / 1000.0
+
+    return matrix
