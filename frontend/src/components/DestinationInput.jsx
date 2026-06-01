@@ -108,7 +108,7 @@ export default function DestinationInput({ destinations, onChange }) {
           <input
             id="place-query"
             type="text"
-            placeholder="Ej. Centro Histórico, Ciudad de México"
+            placeholder="Ej. Estadio Mario Camposeco, Quetzaltenango"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             disabled={atMax || loading || checkingDistance}

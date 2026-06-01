@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api'
 import { buildStraightSegments, fetchDrivingPath } from '../services/drivingRoute'
 
-const DEFAULT_CENTER = { lat: 19.4326, lng: -99.1332 }
+const DEFAULT_CENTER = { lat: 14.8349, lng: -91.5181 }
 const MAP_CONTAINER_STYLE = { width: '100%', height: 'min(420px, 55vh)', borderRadius: '12px' }
 
 const ROUTE_STROKE = {
