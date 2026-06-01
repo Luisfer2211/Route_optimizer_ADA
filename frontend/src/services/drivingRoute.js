@@ -1,4 +1,6 @@
-const DIRECTIONS_PATH = '/api/google/directions'
+const DIRECTIONS_BASE = import.meta.env.DEV
+  ? '/api/google/directions'
+  : 'https://maps.googleapis.com/maps/api/directions/json'
 
 function formatPoint(stop) {
   return `${stop.lat},${stop.lng}`
@@ -75,7 +77,15 @@ async function fetchDirectionsLeg(origin, destination, viaStops = []) {
     params.set('waypoints', viaStops.map(formatPoint).join('|'))
   }
 
-  const response = await fetch(`${DIRECTIONS_PATH}?${params.toString()}`)
+  if (!import.meta.env.DEV) {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+    if (!apiKey) {
+      return { path: [], error: 'VITE_GOOGLE_MAPS_API_KEY is not configured' }
+    }
+    params.set('key', apiKey)
+  }
+
+  const response = await fetch(`${DIRECTIONS_BASE}?${params.toString()}`)
   const data = await response.json()
 
   if (!response.ok) {

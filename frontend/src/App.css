@@ -475,6 +475,22 @@
   font-size: 0.9rem;
 }
 
+@media (max-width: 768px) {
+  .app-shell.app-layout {
+    padding: 1rem;
+    padding-top: 1.25rem;
+  }
+
+  .app-main {
+    max-width: 100%;
+    gap: 1rem;
+  }
+
+  .map-frame {
+    border-radius: 10px;
+  }
+}
+
 @media (max-width: 480px) {
   .auth-card {
     padding: 1.25rem;
@@ -483,5 +499,18 @@
   .app-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .app-header .btn-secondary {
+    width: 100%;
+  }
+
+  .destination-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-small {
+    width: 100%;
   }
 }
